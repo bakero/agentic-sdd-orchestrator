@@ -91,6 +91,30 @@ describe("runtime kit installer", () => {
     }
   });
 
+  it("init-feature works in a freshly initialized git repo without commits", () => {
+    const target = createUncommittedSandboxRepo("agentic-sdd-fresh-feature-");
+
+    try {
+      runInstallCommand({ targetPath: target });
+      runInitFeatureCommand({
+        targetPath: target,
+        issue: 1,
+        slug: "example-feature",
+        title: "Example feature",
+      });
+
+      const branchName = execFileSync("git", ["symbolic-ref", "--short", "HEAD"], {
+        cwd: target,
+        encoding: "utf8",
+      }).trim();
+
+      expect(branchName).toBe("feature/1-example-feature");
+      expect(existsSync(path.join(target, "docs", "features", "1-example-feature", "status.md"))).toBe(true);
+    } finally {
+      rmSync(target, { recursive: true, force: true });
+    }
+  });
+
   it("init-feature refuses to overwrite an existing feature folder", () => {
     const target = createSandboxRepo("agentic-sdd-feature-");
 
@@ -146,6 +170,37 @@ describe("runtime kit installer", () => {
       rmSync(target, { recursive: true, force: true });
     }
   });
+
+  it("install plus init-feature also works in a repo without an initial commit", () => {
+    const target = createUncommittedSandboxRepo("agentic-sdd-next-uncommitted-");
+
+    try {
+      runInstallCommand({ targetPath: target });
+      runInitFeatureCommand({
+        targetPath: target,
+        issue: 1,
+        slug: "example-feature",
+        title: "Example feature",
+      });
+
+      execFileSync(runtimeCommand(), runtimeArgs("agent:next"), {
+        cwd: target,
+        encoding: "utf8",
+        env: buildRuntimeEnv(),
+      });
+
+      const validationReport = readFileSync(
+        path.join(target, ".agent_runtime", "validation_report.json"),
+        "utf8"
+      );
+      const nextPrompt = readFileSync(path.join(target, ".agent_runtime", "next_prompt.md"), "utf8");
+
+      expect(validationReport).toContain("\"commitSha\": \"0000000000000000000000000000000000000000\"");
+      expect(nextPrompt).toContain("Act as gemini-product-owner for Issue #1");
+    } finally {
+      rmSync(target, { recursive: true, force: true });
+    }
+  });
 });
 
 function createSandboxRepo(prefix: string): string {
@@ -162,6 +217,22 @@ function createSandboxRepo(prefix: string): string {
   execFileSync("git", ["config", "user.email", "codex@example.com"], { cwd: target, stdio: "ignore" });
   execFileSync("git", ["add", "package.json"], { cwd: target, stdio: "ignore" });
   execFileSync("git", ["commit", "-m", "Initial commit"], { cwd: target, stdio: "ignore" });
+
+  return target;
+}
+
+function createUncommittedSandboxRepo(prefix: string): string {
+  const target = mkdtempSync(path.join(tmpdir(), prefix));
+  const packageJsonPath = path.join(target, "package.json");
+
+  writeFileSync(
+    packageJsonPath,
+    JSON.stringify({ name: "sandbox", version: "1.0.0", private: true }, null, 2)
+  );
+
+  execFileSync("git", ["init"], { cwd: target, stdio: "ignore" });
+  execFileSync("git", ["config", "user.name", "Codex Tester"], { cwd: target, stdio: "ignore" });
+  execFileSync("git", ["config", "user.email", "codex@example.com"], { cwd: target, stdio: "ignore" });
 
   return target;
 }

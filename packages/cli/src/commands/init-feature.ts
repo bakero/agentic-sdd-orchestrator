@@ -88,7 +88,7 @@ function ensureFeatureBranch(targetPath: string, branchName: string): void {
     );
   }
 
-  const currentBranch = gitOutput(targetPath, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const currentBranch = currentBranchName(targetPath);
   if (currentBranch === branchName) {
     return;
   }
@@ -112,6 +112,10 @@ function ensureFeatureBranch(targetPath: string, branchName: string): void {
 
 function isGitRepository(targetPath: string): boolean {
   return gitExitCode(targetPath, ["rev-parse", "--is-inside-work-tree"]) === 0;
+}
+
+function currentBranchName(targetPath: string): string {
+  return gitOutput(targetPath, ["symbolic-ref", "--short", "HEAD"]);
 }
 
 function gitOutput(targetPath: string, args: string[]): string {
