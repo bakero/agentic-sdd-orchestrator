@@ -1,0 +1,143 @@
+{
+  "schema_version": "1",
+  "allowed_states": [
+    "IDEA_CAPTURED",
+    "FUNCTIONAL_DISCOVERY",
+    "FUNCTIONAL_PREFLIGHT",
+    "POTENTIAL_FEATURE_CONFLICT",
+    "READY_TO_BRANCH",
+    "BRANCH_INITIALIZED",
+    "FUNCTIONAL_SPEC_IN_PROGRESS",
+    "FUNCTIONAL_SPEC_READY",
+    "READY_FOR_TECHNICAL_SPEC",
+    "TECHNICAL_SPEC_IN_PROGRESS",
+    "TECHNICAL_SPEC_READY",
+    "READY_FOR_IMPLEMENTATION",
+    "IMPLEMENTATION_IN_PROGRESS",
+    "IMPLEMENTATION_BLOCKED",
+    "IMPLEMENTATION_READY_FOR_REVIEW",
+    "TECHNICAL_REVIEW_IN_PROGRESS",
+    "TECHNICAL_REVIEW_APPROVED",
+    "TECHNICAL_REVIEW_REJECTED",
+    "READY_FOR_FUNCTIONAL_VALIDATION",
+    "FUNCTIONAL_VALIDATION_IN_PROGRESS",
+    "FUNCTIONAL_VALIDATION_APPROVED",
+    "FUNCTIONAL_VALIDATION_REJECTED",
+    "READY_FOR_PR",
+    "PR_CREATED",
+    "MERGED",
+    "CANCELLED",
+    "NEEDS_HUMAN_DECISION"
+  ],
+  "terminal_states": ["MERGED", "CANCELLED"],
+  "special_next_agents": ["human", "none"],
+  "entry_states": ["BRANCH_INITIALIZED"],
+  "any_state_successors": ["NEEDS_HUMAN_DECISION"],
+  "transitions": {
+    "IDEA_CAPTURED": ["FUNCTIONAL_DISCOVERY"],
+    "FUNCTIONAL_DISCOVERY": ["FUNCTIONAL_PREFLIGHT"],
+    "FUNCTIONAL_PREFLIGHT": ["POTENTIAL_FEATURE_CONFLICT", "READY_TO_BRANCH"],
+    "POTENTIAL_FEATURE_CONFLICT": ["READY_TO_BRANCH", "CANCELLED"],
+    "READY_TO_BRANCH": ["BRANCH_INITIALIZED"],
+    "BRANCH_INITIALIZED": ["FUNCTIONAL_SPEC_IN_PROGRESS"],
+    "FUNCTIONAL_SPEC_IN_PROGRESS": ["FUNCTIONAL_SPEC_READY"],
+    "FUNCTIONAL_SPEC_READY": ["READY_FOR_TECHNICAL_SPEC"],
+    "READY_FOR_TECHNICAL_SPEC": ["TECHNICAL_SPEC_IN_PROGRESS"],
+    "TECHNICAL_SPEC_IN_PROGRESS": ["TECHNICAL_SPEC_READY"],
+    "TECHNICAL_SPEC_READY": ["READY_FOR_IMPLEMENTATION"],
+    "READY_FOR_IMPLEMENTATION": ["IMPLEMENTATION_IN_PROGRESS"],
+    "IMPLEMENTATION_IN_PROGRESS": ["IMPLEMENTATION_READY_FOR_REVIEW", "IMPLEMENTATION_BLOCKED"],
+    "IMPLEMENTATION_BLOCKED": ["IMPLEMENTATION_IN_PROGRESS"],
+    "IMPLEMENTATION_READY_FOR_REVIEW": ["TECHNICAL_REVIEW_IN_PROGRESS"],
+    "TECHNICAL_REVIEW_IN_PROGRESS": ["TECHNICAL_REVIEW_APPROVED", "TECHNICAL_REVIEW_REJECTED"],
+    "TECHNICAL_REVIEW_REJECTED": ["IMPLEMENTATION_IN_PROGRESS"],
+    "TECHNICAL_REVIEW_APPROVED": ["READY_FOR_FUNCTIONAL_VALIDATION"],
+    "READY_FOR_FUNCTIONAL_VALIDATION": ["FUNCTIONAL_VALIDATION_IN_PROGRESS"],
+    "FUNCTIONAL_VALIDATION_IN_PROGRESS": ["FUNCTIONAL_VALIDATION_APPROVED", "FUNCTIONAL_VALIDATION_REJECTED"],
+    "FUNCTIONAL_VALIDATION_REJECTED": ["TECHNICAL_SPEC_IN_PROGRESS", "IMPLEMENTATION_IN_PROGRESS"],
+    "FUNCTIONAL_VALIDATION_APPROVED": ["READY_FOR_PR"],
+    "READY_FOR_PR": ["PR_CREATED"],
+    "PR_CREATED": ["MERGED"],
+    "NEEDS_HUMAN_DECISION": [
+      "FUNCTIONAL_DISCOVERY",
+      "FUNCTIONAL_PREFLIGHT",
+      "READY_TO_BRANCH",
+      "FUNCTIONAL_SPEC_IN_PROGRESS",
+      "TECHNICAL_SPEC_IN_PROGRESS",
+      "READY_FOR_IMPLEMENTATION",
+      "IMPLEMENTATION_IN_PROGRESS",
+      "TECHNICAL_REVIEW_IN_PROGRESS",
+      "FUNCTIONAL_VALIDATION_IN_PROGRESS",
+      "READY_FOR_PR",
+      "CANCELLED"
+    ]
+  },
+  "state_requirements": {
+    "READY_FOR_TECHNICAL_SPEC": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } }
+      ]
+    },
+    "TECHNICAL_SPEC_IN_PROGRESS": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } }
+      ]
+    },
+    "TECHNICAL_SPEC_READY": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } },
+        { "path": "technical_spec.md", "frontmatter": { "status": "APPROVED", "document": "technical_spec" } },
+        { "path": "test_plan.md", "frontmatter": { "status": "APPROVED", "document": "test_plan" } }
+      ]
+    },
+    "READY_FOR_IMPLEMENTATION": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } },
+        { "path": "technical_spec.md", "frontmatter": { "status": "APPROVED", "document": "technical_spec" } },
+        { "path": "test_plan.md", "frontmatter": { "status": "APPROVED", "document": "test_plan" } }
+      ]
+    },
+    "IMPLEMENTATION_IN_PROGRESS": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } },
+        { "path": "technical_spec.md", "frontmatter": { "status": "APPROVED", "document": "technical_spec" } }
+      ]
+    },
+    "IMPLEMENTATION_READY_FOR_REVIEW": {
+      "required_documents": [
+        { "path": "functional_spec.md", "frontmatter": { "status": "APPROVED", "document": "functional_spec" } },
+        { "path": "technical_spec.md", "frontmatter": { "status": "APPROVED", "document": "technical_spec" } },
+        { "path": "test_plan.md", "frontmatter": { "document": "test_plan" } },
+        { "path": "implementation_report.md", "frontmatter": { "document": "implementation_report" } }
+      ]
+    },
+    "TECHNICAL_REVIEW_APPROVED": {
+      "required_documents": [
+        { "path": "technical_review.md", "frontmatter": { "status": "APPROVED", "document": "technical_review" } }
+      ]
+    },
+    "READY_FOR_FUNCTIONAL_VALIDATION": {
+      "required_documents": [
+        { "path": "technical_review.md", "frontmatter": { "status": "APPROVED", "document": "technical_review" } }
+      ]
+    },
+    "FUNCTIONAL_VALIDATION_APPROVED": {
+      "required_documents": [
+        { "path": "functional_validation.md", "frontmatter": { "status": "APPROVED", "document": "functional_validation" } }
+      ]
+    },
+    "READY_FOR_PR": {
+      "required_documents": [
+        { "path": "functional_validation.md", "frontmatter": { "status": "APPROVED", "document": "functional_validation" } }
+      ]
+    }
+  },
+  "handoff_optional_states": ["MERGED", "CANCELLED"],
+  "agent_prompt_refs": {
+    "gemini-product-owner": ".agents/prompts/gemini_product_owner.md",
+    "codex-architect": ".agents/prompts/codex_architect.md",
+    "claude-implementer": ".agents/prompts/claude_implementer.md",
+    "codex-reviewer": ".agents/prompts/codex_reviewer.md",
+    "gemini-functional-validator": ".agents/prompts/gemini_functional_validator.md"
+  }
+}

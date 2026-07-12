@@ -1,0 +1,54 @@
+name: Agent SDD Guard
+
+on:
+  push:
+    branches:
+      - "feature/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-workflow-state:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # On pull_request, actions/checkout defaults to the synthetic
+          # refs/pull/<n>/merge ref in detached HEAD, whose parent is a
+          # throwaway merge commit rather than the PR branch's real commit
+          # history. Explicitly checking out the PR head SHA (falling back
+          # to github.sha for push, where head.sha is unset) puts HEAD~1 /
+          # `git show <sha>:...` back on the actual feature-branch history
+          # the transition validator needs.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate workflow state
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: npm run agent:validate
+
+      - name: Resolve next_action
+        run: npm run agent:resolve
+
+      - name: Upload .agent_runtime artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-runtime
+          path: .agent_runtime/
+          if-no-files-found: ignore
