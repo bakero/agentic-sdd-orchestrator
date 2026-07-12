@@ -41,7 +41,7 @@ The kit is installed into a target repository using this layout:
 
 Initial support is Cowork mode.
 
-The target repo can run:
+After installing the runtime kit, initializing a feature, and running `npm install` in the target repository, the target repo can run:
 
 `npm run agent:next`
 
@@ -50,3 +50,5 @@ This validates workflow state, resolves the next action and renders the next pro
 `.agent_runtime/next_prompt.md`
 
 A human or coworking tool then executes the generated prompt.
+
+For the first feature handoff, `init-feature` seeds `BRANCH_INITIALIZED` so the first generated prompt targets Gemini Product Owner in Cowork mode.

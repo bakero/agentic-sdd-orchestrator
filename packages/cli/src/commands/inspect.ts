@@ -35,6 +35,9 @@ export function runInspectCommand(options: InspectCommandOptions): void {
   console.log(`Git repository: ${target.isGitRepository}`);
   console.log(`package.json: ${packageReport.exists}`);
   console.log(`Missing package scripts: ${packageReport.missingScripts.join(", ") || "none"}`);
+  console.log(
+    `Missing runtime devDependencies: ${packageReport.missingDevDependencies.join(", ") || "none"}`
+  );
   console.log(`Missing runtime paths: ${missingRuntimePaths.join(", ") || "none"}`);
   console.log(`.gitignore exists: ${hasGitignore}`);
 }

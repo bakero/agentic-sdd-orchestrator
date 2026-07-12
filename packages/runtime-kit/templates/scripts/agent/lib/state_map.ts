@@ -27,6 +27,11 @@ export const BLOCKED_STATES: readonly string[] = [
  * transition; later entries are alternative/rejection outcomes.
  */
 export const HANDOFF_MAP: Record<string, HandoffEntry> = {
+  BRANCH_INITIALIZED: {
+    agent: "gemini-product-owner",
+    promptTemplate: ".agents/prompts/gemini_product_owner.md",
+    targetStates: ["FUNCTIONAL_SPEC_IN_PROGRESS"],
+  },
   READY_FOR_TECHNICAL_SPEC: {
     agent: "codex-architect",
     promptTemplate: ".agents/prompts/codex_architect.md",
@@ -84,6 +89,7 @@ export const REQUIRED_DOCS_BY_STATE: Record<string, RequiredDoc[]> = {
  * in different phases).
  */
 export const EXPECTED_OUTPUTS_BY_STATE: Record<string, string[]> = {
+  BRANCH_INITIALIZED: ["functional_spec.md", "status.md updated"],
   READY_FOR_TECHNICAL_SPEC: ["technical_spec.md", "test_plan.md", "status.md updated"],
   READY_FOR_IMPLEMENTATION: [
     "implementation_report.md",
