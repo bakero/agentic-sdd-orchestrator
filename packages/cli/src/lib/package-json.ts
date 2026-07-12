@@ -8,15 +8,22 @@ export const REQUIRED_AGENT_SCRIPTS: Record<string, string> = {
   "agent:next": "npm run agent:validate && npm run agent:resolve && npm run agent:prompt"
 };
 
+export const REQUIRED_AGENT_DEV_DEPENDENCIES: Record<string, string> = {
+  tsx: "^4.20.0"
+};
+
 export type PackageJsonScriptReport = {
   packageJsonPath: string;
   exists: boolean;
   missingScripts: string[];
   existingScripts: string[];
+  missingDevDependencies: string[];
+  existingDevDependencies: string[];
 };
 
 type PackageJsonShape = {
   scripts?: Record<string, string>;
+  devDependencies?: Record<string, string>;
   [key: string]: unknown;
 };
 
@@ -28,7 +35,9 @@ export function inspectPackageJsonScripts(targetPath: string): PackageJsonScript
       packageJsonPath,
       exists: false,
       missingScripts: Object.keys(REQUIRED_AGENT_SCRIPTS),
-      existingScripts: []
+      existingScripts: [],
+      missingDevDependencies: Object.keys(REQUIRED_AGENT_DEV_DEPENDENCIES),
+      existingDevDependencies: []
     };
   }
 
@@ -40,7 +49,13 @@ export function inspectPackageJsonScripts(targetPath: string): PackageJsonScript
     packageJsonPath,
     exists: true,
     missingScripts: requiredScriptNames.filter((scriptName) => !(scriptName in scripts)),
-    existingScripts: requiredScriptNames.filter((scriptName) => scriptName in scripts)
+    existingScripts: requiredScriptNames.filter((scriptName) => scriptName in scripts),
+    missingDevDependencies: Object.keys(REQUIRED_AGENT_DEV_DEPENDENCIES).filter(
+      (dependencyName) => !(dependencyName in (packageJson.devDependencies ?? {}))
+    ),
+    existingDevDependencies: Object.keys(REQUIRED_AGENT_DEV_DEPENDENCIES).filter(
+      (dependencyName) => dependencyName in (packageJson.devDependencies ?? {})
+    )
   };
 }
 
@@ -53,9 +68,14 @@ export function ensurePackageJsonScripts(targetPath: string, dryRun = false): Pa
 
   const packageJson = readPackageJson(report.packageJsonPath);
   packageJson.scripts = packageJson.scripts ?? {};
+  packageJson.devDependencies = packageJson.devDependencies ?? {};
 
   for (const scriptName of report.missingScripts) {
     packageJson.scripts[scriptName] = REQUIRED_AGENT_SCRIPTS[scriptName];
+  }
+
+  for (const dependencyName of report.missingDevDependencies) {
+    packageJson.devDependencies[dependencyName] = REQUIRED_AGENT_DEV_DEPENDENCIES[dependencyName];
   }
 
   writeFileSync(report.packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);

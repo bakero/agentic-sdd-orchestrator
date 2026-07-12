@@ -30,6 +30,9 @@ export function runInstallCommand(options: InstallCommandOptions): void {
   console.log(`Copied files: ${copyReport.copiedFiles.length}`);
   console.log(`Skipped existing files: ${copyReport.skippedExistingFiles.length}`);
   console.log(`Missing package scripts after install: ${packageReport.missingScripts.join(", ") || "none"}`);
+  console.log(
+    `Missing runtime devDependencies after install: ${packageReport.missingDevDependencies.join(", ") || "none"}`
+  );
   console.log(`.agent_runtime/ gitignore ensured: ${gitignoreChanged || dryRun}`);
 }
 
