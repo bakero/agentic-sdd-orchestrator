@@ -12,6 +12,12 @@
     "outDir": "dist"
   },
   "include": [
-    "packages/**/*.ts"
+    "packages/cli/src/**/*.ts",
+    "packages/cli/tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "packages/runtime-kit/templates"
   ]
 }
