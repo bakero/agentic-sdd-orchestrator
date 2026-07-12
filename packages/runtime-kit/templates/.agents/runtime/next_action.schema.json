@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Runtime Coordinator next_action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "issue",
+    "feature",
+    "branch",
+    "commit_sha",
+    "current_state",
+    "next_agent",
+    "prompt_template",
+    "target_state",
+    "context_budget",
+    "reasoning_level",
+    "opusplan",
+    "required_reading",
+    "forbidden_actions",
+    "expected_outputs"
+  ],
+  "properties": {
+    "issue": { "type": "integer", "minimum": 1 },
+    "feature": { "type": "string", "minLength": 1 },
+    "branch": { "type": "string", "pattern": "^feature/" },
+    "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+    "current_state": { "type": "string", "minLength": 1 },
+    "next_agent": { "type": "string", "minLength": 1 },
+    "prompt_template": { "type": ["string", "null"] },
+    "target_state": { "type": ["string", "null"] },
+    "context_budget": { "type": "string", "enum": ["XS", "S", "M", "L", "XL"] },
+    "reasoning_level": { "type": "string", "enum": ["low", "medium", "high"] },
+    "opusplan": { "type": "boolean" },
+    "required_reading": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

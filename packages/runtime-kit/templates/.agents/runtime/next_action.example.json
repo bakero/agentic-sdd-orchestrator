@@ -1,0 +1,31 @@
+{
+  "issue": 123,
+  "feature": "6-agent-runtime-coordinator",
+  "branch": "feature/123-example-feature",
+  "commit_sha": "abc1234def5678",
+  "current_state": "READY_FOR_IMPLEMENTATION",
+  "next_agent": "claude-implementer",
+  "prompt_template": ".agents/prompts/claude_implementer.md",
+  "target_state": "IMPLEMENTATION_READY_FOR_REVIEW",
+  "context_budget": "M",
+  "reasoning_level": "medium",
+  "opusplan": false,
+  "required_reading": [
+    ".agents/rules/common_contract.md",
+    ".agents/rules/cost_and_context_policy.md",
+    ".agents/rules/roles/claude_implementer.md",
+    ".agents/prompts/claude_implementer.md",
+    "docs/features/6-agent-runtime-coordinator/status.md"
+  ],
+  "forbidden_actions": [
+    "Do not change functional_spec.md",
+    "Do not implement automatic merge",
+    "Do not add external AI API calls"
+  ],
+  "expected_outputs": [
+    "implementation_report.md",
+    "test_plan.md updated",
+    "status.md updated"
+  ],
+  "generated_at": "2026-07-09T12:00:00.000Z"
+}
