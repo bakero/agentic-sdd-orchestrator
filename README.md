@@ -20,13 +20,95 @@ The goal is to let a user connect a GitHub repository, detect missing setup, ins
 
 The first milestone is to extract the semi-assisted runtime coordinator proven in `events-app` into an installable runtime kit.
 
-## Current MVP status
+## v0.1 status
 
-The local Cowork-mode MVP is now oriented around four steps:
+v0.1 is a demo-ready local MVP for Cowork mode.
 
-1. Inspect and install the runtime kit into a target repository.
-2. Initialize the first feature folder and feature branch with `init-feature`.
-3. Run `npm install` in the target repository.
-4. Run `npm run agent:next` to generate `.agent_runtime/next_prompt.md` for a human-supervised coworking tool.
+What it supports:
 
-See [packages/cli/docs/end-to-end-cowork-mvp.md](./packages/cli/docs/end-to-end-cowork-mvp.md) for the operational quickstart.
+- local repository inspection;
+- local runtime kit installation;
+- dry-run install preview;
+- feature initialization with `init-feature`;
+- local prompt generation through `npm run agent:next`;
+- human-supervised execution in Claude Cowork, Codex, Gemini, or similar tools.
+
+What it does not support:
+
+- dashboard;
+- API mode;
+- autonomous execution;
+- automatic merge;
+- external AI API calls;
+- remote repository cloning;
+- production packaging or hosted operations.
+
+## v0.1 quickstart
+
+Install orchestrator dependencies:
+
+```bash
+npm install
+```
+
+Create a sandbox in PowerShell:
+
+```powershell
+$sandbox = Join-Path $env:TEMP "agentic-sdd-demo-sandbox"
+if (Test-Path $sandbox) { Remove-Item -Recurse -Force $sandbox }
+New-Item -ItemType Directory -Path $sandbox | Out-Null
+git -C $sandbox init
+@'
+{
+  "name": "agentic-sdd-demo-sandbox",
+  "version": "1.0.0",
+  "private": true
+}
+'@ | Set-Content -Path (Join-Path $sandbox "package.json")
+```
+
+Install the runtime kit from this repository:
+
+```bash
+npx tsx packages/cli/src/index.ts install <sandbox>
+```
+
+Initialize the first feature:
+
+```bash
+npx tsx packages/cli/src/index.ts init-feature <sandbox> --issue 1 --slug demo-feature --title "Demo feature"
+```
+
+Inside the target repo:
+
+```bash
+npm install
+npm run agent:next
+```
+
+Open:
+
+```text
+.agent_runtime/next_prompt.md
+```
+
+Paste that generated prompt into Claude Cowork, Codex, Gemini, or a similar human-supervised tool.
+
+## Safety guarantees
+
+- GitHub and `status.md` remain the source of truth;
+- prompt generation is semi-assisted only;
+- no autonomous execution is performed by the orchestrator;
+- no automatic merge is performed by the orchestrator;
+- human final merge remains required.
+
+## Current limitations
+
+See [docs/product/known-limitations.md](./docs/product/known-limitations.md).
+
+## Next roadmap
+
+- improve installer conflict reporting;
+- make feature index updates more structured;
+- prepare packaging and distribution options for the CLI;
+- expand verification and demo coverage without changing the safety model.
