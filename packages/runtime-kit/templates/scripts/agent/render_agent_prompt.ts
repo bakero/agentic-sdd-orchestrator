@@ -12,6 +12,7 @@ export type { PromptContext, RenderResult } from "./lib/render";
 const RUNTIME_DIR = ".agent_runtime";
 const NEXT_ACTION_PATH = `${RUNTIME_DIR}/next_action.json`;
 const NEXT_PROMPT_PATH = `${RUNTIME_DIR}/next_prompt.md`;
+const UNCOMMITTED_HEAD = "0000000000000000000000000000000000000000";
 
 function writeRuntimeFile(repoRoot: string, relativePath: string, content: string): void {
   const fullPath = join(repoRoot, relativePath);
@@ -27,9 +28,10 @@ function currentCommitSha(repoRoot: string): string {
     return execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repoRoot,
       encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
-    return "";
+    return UNCOMMITTED_HEAD;
   }
 }
 

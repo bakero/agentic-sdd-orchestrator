@@ -16,6 +16,7 @@ export type {
 const CONTRACT_PATH = ".agents/runtime/workflow_contract.json";
 const RUNTIME_DIR = ".agent_runtime";
 const VALIDATION_REPORT_PATH = `${RUNTIME_DIR}/validation_report.json`;
+const UNCOMMITTED_HEAD = "0000000000000000000000000000000000000000";
 
 export function featureIdFromBranch(branch: string): string | null {
   const match = /^feature\/(.+)$/.exec(branch);
@@ -30,7 +31,7 @@ function currentBranch(repoRoot: string): string {
   if (process.env.GITHUB_HEAD_REF) return process.env.GITHUB_HEAD_REF;
   if (process.env.GITHUB_REF_NAME) return process.env.GITHUB_REF_NAME;
   try {
-    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    return execFileSync("git", ["symbolic-ref", "--short", "HEAD"], {
       cwd: repoRoot,
       encoding: "utf8",
     }).trim();
@@ -44,9 +45,10 @@ function currentCommitSha(repoRoot: string): string {
     return execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repoRoot,
       encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
-    return "";
+    return UNCOMMITTED_HEAD;
   }
 }
 
