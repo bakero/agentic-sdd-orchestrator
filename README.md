@@ -1,49 +1,21 @@
 # Agentic SDD Orchestrator
 
-A repository-connected orchestration platform for human-supervised AI agent workflows.
+Agentic SDD Orchestrator is a repository-connected workflow kit for human-supervised AI delivery. It inspects a local repository, installs the runtime kit, initializes a feature workspace from an issue, and renders the next prompt for a human-operated tool such as Codex, Claude Cowork, or Gemini.
 
-The goal is to let a user connect a GitHub repository, detect missing setup, install an Agentic SDD runtime kit, configure agents/models/cost policies, and coordinate work through either:
+## Release status
 
-- Cowork mode: generated prompts executed manually or semi-assisted in tools such as Claude Cowork, Codex, Gemini or similar.
-- API mode: future direct execution through user-provided model API keys, with explicit cost controls and human gates.
+- `v0.1-demo` is tagged and remains the source-of-truth demo milestone.
+- `v0.2` is a technical release candidate focused on CLI packaging, usability, docs, and verification.
+- The recommended local development command is now `npm run agentic-sdd -- ...`.
 
-## Core principles
+## What the product does
 
-- GitHub remains the source of truth for issues, pull requests and merge state.
-- `status.md` remains the source of truth for feature workflow state.
-- The orchestrator may validate state, resolve next actions and render prompts.
-- The orchestrator must not silently override workflow state.
-- Human final merge remains required.
-- Cost and context usage must be visible, logged and optimizable.
+- keeps GitHub and `status.md` as the source of truth for installed repositories and feature state;
+- prepares repository-local runtime files instead of hosted infrastructure;
+- supports a semi-assisted Cowork flow where the CLI generates the next prompt and a human or external tool executes it;
+- preserves the current safety model by avoiding autonomous execution, external AI API calls, and auto-merge.
 
-## Initial target
-
-The first milestone is to extract the semi-assisted runtime coordinator proven in `events-app` into an installable runtime kit.
-
-## v0.1 status
-
-v0.1 is a demo-ready local MVP for Cowork mode.
-
-What it supports:
-
-- local repository inspection;
-- local runtime kit installation;
-- dry-run install preview;
-- feature initialization with `init-feature`;
-- local prompt generation through `npm run agent:next`;
-- human-supervised execution in Claude Cowork, Codex, Gemini, or similar tools.
-
-What it does not support:
-
-- dashboard;
-- API mode;
-- autonomous execution;
-- automatic merge;
-- external AI API calls;
-- remote repository cloning;
-- production packaging or hosted operations.
-
-## v0.1 quickstart
+## Quickstart
 
 Install orchestrator dependencies:
 
@@ -51,64 +23,74 @@ Install orchestrator dependencies:
 npm install
 ```
 
-Create a sandbox in PowerShell:
+Create a PowerShell sandbox:
 
 ```powershell
-$sandbox = Join-Path $env:TEMP "agentic-sdd-demo-sandbox"
-if (Test-Path $sandbox) { Remove-Item -Recurse -Force $sandbox }
-New-Item -ItemType Directory -Path $sandbox | Out-Null
-git -C $sandbox init
+$sandbox = Join-Path $env:TEMP "agentic-sdd-demo"
+Remove-Item -Recurse -Force $sandbox -ErrorAction SilentlyContinue
+mkdir $sandbox | Out-Null
+git init $sandbox
+
 @'
 {
-  "name": "agentic-sdd-demo-sandbox",
+  "name": "agentic-sdd-demo",
   "version": "1.0.0",
   "private": true
 }
 '@ | Set-Content -Path (Join-Path $sandbox "package.json")
 ```
 
-Install the runtime kit from this repository:
+Prepare the target repository from this repo:
 
 ```bash
-npx tsx packages/cli/src/index.ts install <sandbox>
+npm run agentic-sdd -- install <sandbox>
+npm run agentic-sdd -- init-feature <sandbox> --issue 1 --slug demo-feature --title "Demo feature"
 ```
 
-Initialize the first feature:
+Finish the supported local flow inside the target repository:
 
 ```bash
-npx tsx packages/cli/src/index.ts init-feature <sandbox> --issue 1 --slug demo-feature --title "Demo feature"
-```
-
-Inside the target repo:
-
-```bash
+cd <sandbox>
 npm install
 npm run agent:next
 ```
 
-Open:
+Open `.agent_runtime/next_prompt.md` and execute that prompt in a human-supervised tool.
 
-```text
-.agent_runtime/next_prompt.md
-```
+## Supported flow
 
-Paste that generated prompt into Claude Cowork, Codex, Gemini, or a similar human-supervised tool.
+The current recommended v0.2 flow is:
+
+1. `npm run agentic-sdd -- inspect <target-repo>`
+2. `npm run agentic-sdd -- install <target-repo>`
+3. `npm run agentic-sdd -- init-feature <target-repo> --issue <number> --slug <slug> --title <title>`
+4. `cd <target-repo>`
+5. `npm install`
+6. `npm run agent:next`
+7. Open `.agent_runtime/next_prompt.md`
 
 ## Safety guarantees
 
-- GitHub and `status.md` remain the source of truth;
-- prompt generation is semi-assisted only;
-- no autonomous execution is performed by the orchestrator;
-- no automatic merge is performed by the orchestrator;
-- human final merge remains required.
+- GitHub and `status.md` remain the source of truth.
+- Cowork mode stays semi-assisted: the CLI generates prompts, but a human or tool executes them.
+- No external AI APIs are called by the orchestrator.
+- No dashboard, hosted control plane, or API mode is introduced.
+- No autonomous agent execution or automatic merge is performed.
+- Human review and final merge remain required.
 
 ## Current limitations
 
-See [docs/product/known-limitations.md](./docs/product/known-limitations.md).
+- Local filesystem workflows only.
+- Not packaged to npm yet.
+- No GitHub App integration in the runtime flow.
+- No remote repository cloning.
+- No migration system for existing installed runtimes.
 
-## Next roadmap
+See [known limitations](./docs/product/known-limitations.md) for the detailed list.
 
-- improve installer conflict reporting;
-- make feature index updates more structured;
-- prepare packaging and distribution options for the CLI;
-- expand verification and demo coverage without changing the safety model.
+## Roadmap
+
+- [v0.2 CLI packaging release notes](./docs/releases/v0.2-cli-packaging.md)
+- [Product roadmap](./docs/product/roadmap.md)
+- [Product vision](./docs/product/vision.md)
+- [Architecture overview](./docs/architecture/overview.md)
