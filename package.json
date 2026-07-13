@@ -5,6 +5,8 @@
   "description": "Repository-connected orchestration platform for human-supervised AI agent workflows.",
   "type": "module",
   "scripts": {
+    "agentic-sdd": "tsx packages/cli/src/index.ts",
+    "cli": "tsx packages/cli/src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
