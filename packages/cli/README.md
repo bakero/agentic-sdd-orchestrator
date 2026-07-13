@@ -4,6 +4,8 @@ Local CLI for installing and operating the Agentic SDD runtime kit.
 
 This CLI is currently intended for local demo and developer usage. It prepares a target repository for semi-assisted Cowork mode; it does not execute external AI models itself.
 
+v0.2 is a local development CLI release, not an npm-published standalone package yet.
+
 ## Current commands
 
 - `agentic-sdd inspect <target-repo>`
@@ -11,10 +13,38 @@ This CLI is currently intended for local demo and developer usage. It prepares a
 - `agentic-sdd install <target-repo> --dry-run`
 - `agentic-sdd init-feature <target-repo> --issue <number> --slug <slug> --title <title>`
 
-When running from this repository before packaging a standalone binary, use:
+When running from this repository, use the packaged local script:
 
 ```bash
-npx tsx packages/cli/src/index.ts <command> ...
+npm run agentic-sdd -- <command> ...
+```
+
+The legacy direct TypeScript entrypoint still works for development internals, but the recommended local workflow is the npm script above. A future npm package can add a real `agentic-sdd` bin after a built JavaScript output exists.
+
+## Quickstart
+
+Inspect a local repository:
+
+```bash
+npm run agentic-sdd -- inspect <target-repo>
+```
+
+Install the runtime kit:
+
+```bash
+npm run agentic-sdd -- install <target-repo>
+```
+
+Preview the install without writing files:
+
+```bash
+npm run agentic-sdd -- install <target-repo> --dry-run
+```
+
+Initialize the first feature from an issue:
+
+```bash
+npm run agentic-sdd -- init-feature <target-repo> --issue 1 --slug demo-feature --title "Demo feature"
 ```
 
 ## End-to-end quickstart
@@ -49,7 +79,7 @@ The `init-feature` command:
 
 ## Demo-ready workflow
 
-The intended v0.1 flow is:
+The intended v0.2 local/dev flow is:
 
 1. run `inspect` on a local sandbox;
 2. run `install` on that sandbox;
@@ -66,6 +96,7 @@ Human final merge remains required.
 
 - dashboard;
 - API mode;
+- npm publishing in this release;
 - GitHub App installation;
 - remote repository cloning;
 - automatic PR creation.
