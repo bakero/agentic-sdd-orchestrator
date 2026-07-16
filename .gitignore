@@ -3,4 +3,5 @@ dist/
 .env
 .env.local
 .agent_runtime/
+.agentic-sdd/
 .DS_Store
