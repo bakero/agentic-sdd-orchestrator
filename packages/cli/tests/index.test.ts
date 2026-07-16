@@ -66,6 +66,52 @@ describe("CLI invocation", () => {
     ).toThrow(/Missing required flag: --title/);
   });
 
+  it("routes unknown project subcommands to a clear error", () => {
+    const result = captureCli(["node", "agentic-sdd", "project", "ship"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unknown project subcommand: ship");
+  });
+
+  it("requires --name for project add", () => {
+    const target = createTempDir("agentic-sdd-cli-project-add-");
+
+    expect(() => runCli(["node", "agentic-sdd", "project", "add", target])).toThrow(
+      /Missing required flag: --name/
+    );
+  });
+
+  it("requires a name or path for doctor", () => {
+    const result = captureCli(["node", "agentic-sdd", "doctor"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Missing project name or path for command: doctor");
+  });
+
+  it("requires a name or path for next", () => {
+    const result = captureCli(["node", "agentic-sdd", "next"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Missing project name or path for command: next");
+  });
+
+  it("routes doctor and next by direct path end to end via the CLI", () => {
+    const target = createTempDir("agentic-sdd-cli-doctor-");
+    writeFileSync(
+      path.join(target, "package.json"),
+      JSON.stringify({ name: "sandbox", private: true }, null, 2)
+    );
+    execFileSync("git", ["init"], { cwd: target, stdio: "ignore" });
+
+    const doctorResult = captureCli(["node", "agentic-sdd", "doctor", target]);
+    expect(doctorResult.exitCode).toBe(0);
+    expect(doctorResult.stdout).toContain("Overall status: NEEDS_SETUP");
+
+    const nextResult = captureCli(["node", "agentic-sdd", "next", target]);
+    expect(nextResult.exitCode).toBe(0);
+    expect(nextResult.stdout).toContain("Install the runtime kit.");
+  });
+
   it("rejects invalid issue numbers before touching git state", () => {
     const target = createTempDir("agentic-sdd-cli-invalid-issue-");
     writeFileSync(
