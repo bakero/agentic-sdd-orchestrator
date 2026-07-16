@@ -5,7 +5,8 @@ Agentic SDD Orchestrator is a repository-connected workflow kit for human-superv
 ## Release status
 
 - `v0.1-demo` is tagged and remains the source-of-truth demo milestone.
-- `v0.2` is a technical release candidate focused on CLI packaging, usability, docs, and verification.
+- `v0.2-cli` is tagged and focused on CLI packaging, usability, docs, and verification.
+- `v0.3` is a technical release candidate that adds a local project registry, a `doctor` command, and a `next` command so the CLI is easier to use across multiple target repositories.
 - The recommended local development command is now `npm run agentic-sdd -- ...`.
 
 ## What the product does
@@ -69,6 +70,49 @@ The current recommended v0.2 flow is:
 6. `npm run agent:next`
 7. Open `.agent_runtime/next_prompt.md`
 
+## v0.3 quickstart: project manager and doctor
+
+v0.3 adds a local project registry plus `doctor`/`next` commands so you can manage multiple target repositories by name instead of typing full paths every time. Run from PowerShell inside this repository:
+
+```powershell
+npm install
+
+$sandbox = Join-Path $env:TEMP "agentic-sdd-v03-demo"
+Remove-Item -Recurse -Force $sandbox -ErrorAction SilentlyContinue
+mkdir $sandbox | Out-Null
+git init $sandbox
+
+@'
+{
+  "name": "agentic-sdd-v03-demo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "echo \"no tests\""
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}
+'@ | Set-Content -Path (Join-Path $sandbox "package.json")
+
+npm run agentic-sdd -- project add $sandbox --name demo
+npm run agentic-sdd -- doctor demo
+npm run agentic-sdd -- next demo
+npm run agentic-sdd -- install $sandbox
+npm run agentic-sdd -- init-feature $sandbox --issue 1 --slug demo-feature --title "Demo feature"
+
+cd $sandbox
+npm install
+npm run agent:next
+cd -
+
+npm run agentic-sdd -- doctor demo
+npm run agentic-sdd -- next demo
+```
+
+Open `.agent_runtime/next_prompt.md` inside `$sandbox` and hand it to a human-supervised tool (Cowork, Codex, Gemini, Claude). See [v0.3 release notes](./docs/releases/v0.3-project-manager-doctor.md) for the full command reference.
+
 ## Safety guarantees
 
 - GitHub and `status.md` remain the source of truth.
@@ -76,6 +120,7 @@ The current recommended v0.2 flow is:
 - No external AI APIs are called by the orchestrator.
 - No dashboard, hosted control plane, or API mode is introduced.
 - No autonomous agent execution or automatic merge is performed.
+- `doctor` and `next` (v0.3) are strictly read-only against target repositories.
 - Human review and final merge remain required.
 
 ## Current limitations
@@ -90,6 +135,7 @@ See [known limitations](./docs/product/known-limitations.md) for the detailed li
 
 ## Roadmap
 
+- [v0.3 project manager and doctor release notes](./docs/releases/v0.3-project-manager-doctor.md)
 - [v0.2 CLI packaging release notes](./docs/releases/v0.2-cli-packaging.md)
 - [Product roadmap](./docs/product/roadmap.md)
 - [Product vision](./docs/product/vision.md)
