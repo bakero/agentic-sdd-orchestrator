@@ -112,6 +112,62 @@ describe("CLI invocation", () => {
     expect(nextResult.stdout).toContain("Install the runtime kit.");
   });
 
+  it("routes profile/agent/env list and show commands", () => {
+    const profileList = captureCli(["node", "agentic-sdd", "profile", "list"]);
+    expect(profileList.exitCode).toBe(0);
+    expect(profileList.stdout).toContain("technical_specification");
+
+    const profileShow = captureCli(["node", "agentic-sdd", "profile", "show", "technical_specification"]);
+    expect(profileShow.exitCode).toBe(0);
+    expect(profileShow.stdout).toContain("codex_architect.md");
+
+    const agentList = captureCli(["node", "agentic-sdd", "agent", "list"]);
+    expect(agentList.exitCode).toBe(0);
+    expect(agentList.stdout).toContain("codex_architect");
+
+    const agentShow = captureCli(["node", "agentic-sdd", "agent", "show", "codex_architect"]);
+    expect(agentShow.exitCode).toBe(0);
+    expect(agentShow.stdout).toContain("Forbidden actions:");
+
+    const envList = captureCli(["node", "agentic-sdd", "env", "list"]);
+    expect(envList.exitCode).toBe(0);
+    expect(envList.stdout).toContain("claude_cowork_browser");
+
+    const envShow = captureCli(["node", "agentic-sdd", "env", "show", "claude_cowork_browser"]);
+    expect(envShow.exitCode).toBe(0);
+    expect(envShow.stdout).toContain("Execution rules:");
+  });
+
+  it("routes config show and config validate (read-only, no local config required)", () => {
+    const showResult = captureCli(["node", "agentic-sdd", "config", "show"]);
+    expect(showResult.exitCode).toBe(0);
+    expect(showResult.stdout).toContain("Agents:");
+
+    const validateResult = captureCli(["node", "agentic-sdd", "config", "validate"]);
+    expect(validateResult.exitCode).toBe(0);
+    expect(validateResult.stdout).toContain("Result: VALID");
+  });
+
+  it("routes unknown config subcommands to a clear error", () => {
+    const result = captureCli(["node", "agentic-sdd", "config", "ship"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unknown config subcommand: ship");
+  });
+
+  it("routes unknown profile/agent/env subcommands to a clear error", () => {
+    const profileResult = captureCli(["node", "agentic-sdd", "profile", "ship"]);
+    expect(profileResult.exitCode).toBe(1);
+    expect(profileResult.stderr).toContain("Unknown profile subcommand: ship");
+
+    const agentResult = captureCli(["node", "agentic-sdd", "agent", "ship"]);
+    expect(agentResult.exitCode).toBe(1);
+    expect(agentResult.stderr).toContain("Unknown agent subcommand: ship");
+
+    const envResult = captureCli(["node", "agentic-sdd", "env", "ship"]);
+    expect(envResult.exitCode).toBe(1);
+    expect(envResult.stderr).toContain("Unknown env subcommand: ship");
+  });
+
   it("rejects invalid issue numbers before touching git state", () => {
     const target = createTempDir("agentic-sdd-cli-invalid-issue-");
     writeFileSync(
