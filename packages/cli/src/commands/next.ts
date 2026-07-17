@@ -31,5 +31,11 @@ export function runNextCommand(options: NextCommandOptions): DoctorReport {
   }
   options.io.log(`Why: ${report.nextAction.reason}`);
 
+  if (report.overallStatus === "READY" || report.overallStatus === "CHECK_WARNINGS") {
+    options.io.log("");
+    options.io.log("Also available: generate a full Cowork handoff for this project (v0.5).");
+    options.io.log(`  npm run agentic-sdd -- handoff generate ${options.nameOrPath}`);
+  }
+
   return report;
 }
