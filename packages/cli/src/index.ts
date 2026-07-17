@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { runAgentListCommand, runAgentShowCommand } from "./commands/agent.js";
+import {
+  runConfigInitCommand,
+  runConfigShowCommand,
+  runConfigValidateCommand,
+} from "./commands/config.js";
 import { runDoctorCommand } from "./commands/doctor.js";
+import { runEnvListCommand, runEnvShowCommand } from "./commands/env.js";
 import { runInitFeatureCommand } from "./commands/init-feature.js";
 import { runInspectCommand } from "./commands/inspect.js";
 import { runInstallCommand } from "./commands/install.js";
@@ -9,14 +16,23 @@ import { runNextCommand } from "./commands/next.js";
 import {
   resolveOrchestratorRoot,
   runProjectAddCommand,
+  runProjectConfigCommand,
   runProjectInspectCommand,
   runProjectListCommand,
   runProjectRemoveCommand,
 } from "./commands/project.js";
+import { runProfileListCommand, runProfileShowCommand } from "./commands/profile.js";
 
 type LegacyTargetCommandName = "inspect" | "install" | "init-feature";
 type NameOrPathCommandName = "doctor" | "next";
-type CommandName = LegacyTargetCommandName | NameOrPathCommandName | "project";
+type CommandName =
+  | LegacyTargetCommandName
+  | NameOrPathCommandName
+  | "project"
+  | "profile"
+  | "agent"
+  | "env"
+  | "config";
 
 type CliIo = {
   log: (message: string) => void;
@@ -45,6 +61,22 @@ export function runCli(argv: string[], io: CliIo = defaultIo): number {
 
   if (command === "project") {
     return runProjectCommand(rest, io);
+  }
+
+  if (command === "profile") {
+    return runProfileCommand(rest, io);
+  }
+
+  if (command === "agent") {
+    return runAgentCommand(rest, io);
+  }
+
+  if (command === "env") {
+    return runEnvCommand(rest, io);
+  }
+
+  if (command === "config") {
+    return runConfigCommand(rest, io);
   }
 
   if (command === "doctor" || command === "next") {
@@ -164,7 +196,117 @@ function runProjectCommand(rest: string[], io: CliIo): number {
     return 0;
   }
 
+  if (subcommand === "config") {
+    const [nameOrPath] = subArgs;
+    if (!nameOrPath) {
+      io.error("Missing project name or path for command: project config");
+      printUsage(io);
+      return 1;
+    }
+    runProjectConfigCommand({ orchestratorRoot, nameOrPath, io });
+    return 0;
+  }
+
   io.error(`Unknown project subcommand: ${subcommand}`);
+  printUsage(io);
+  return 1;
+}
+
+function runProfileCommand(rest: string[], io: CliIo): number {
+  const [subcommand, ...subArgs] = rest;
+  const orchestratorRoot = resolveOrchestratorRoot();
+
+  if (subcommand === "list") {
+    runProfileListCommand({ orchestratorRoot, io });
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    const [name] = subArgs;
+    if (!name) {
+      io.error("Missing profile name for command: profile show");
+      printUsage(io);
+      return 1;
+    }
+    runProfileShowCommand({ orchestratorRoot, name, io });
+    return 0;
+  }
+
+  io.error(`Unknown profile subcommand: ${subcommand ?? "(none)"}`);
+  printUsage(io);
+  return 1;
+}
+
+function runAgentCommand(rest: string[], io: CliIo): number {
+  const [subcommand, ...subArgs] = rest;
+  const orchestratorRoot = resolveOrchestratorRoot();
+
+  if (subcommand === "list") {
+    runAgentListCommand({ orchestratorRoot, io });
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    const [name] = subArgs;
+    if (!name) {
+      io.error("Missing agent name for command: agent show");
+      printUsage(io);
+      return 1;
+    }
+    runAgentShowCommand({ orchestratorRoot, name, io });
+    return 0;
+  }
+
+  io.error(`Unknown agent subcommand: ${subcommand ?? "(none)"}`);
+  printUsage(io);
+  return 1;
+}
+
+function runEnvCommand(rest: string[], io: CliIo): number {
+  const [subcommand, ...subArgs] = rest;
+  const orchestratorRoot = resolveOrchestratorRoot();
+
+  if (subcommand === "list") {
+    runEnvListCommand({ orchestratorRoot, io });
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    const [name] = subArgs;
+    if (!name) {
+      io.error("Missing environment name for command: env show");
+      printUsage(io);
+      return 1;
+    }
+    runEnvShowCommand({ orchestratorRoot, name, io });
+    return 0;
+  }
+
+  io.error(`Unknown env subcommand: ${subcommand ?? "(none)"}`);
+  printUsage(io);
+  return 1;
+}
+
+function runConfigCommand(rest: string[], io: CliIo): number {
+  const [subcommand, ...subArgs] = rest;
+  const orchestratorRoot = resolveOrchestratorRoot();
+
+  if (subcommand === "init") {
+    const force = subArgs.includes("--force");
+    runConfigInitCommand({ orchestratorRoot, force, io });
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    runConfigShowCommand({ orchestratorRoot, io });
+    return 0;
+  }
+
+  if (subcommand === "validate") {
+    return runConfigValidateCommand({ orchestratorRoot, io });
+  }
+
+  io.error(`Unknown config subcommand: ${subcommand ?? "(none)"}`);
   printUsage(io);
   return 1;
 }
@@ -196,7 +338,11 @@ function isCommandName(command: string): command is CommandName {
     command === "init-feature" ||
     command === "project" ||
     command === "doctor" ||
-    command === "next"
+    command === "next" ||
+    command === "profile" ||
+    command === "agent" ||
+    command === "env" ||
+    command === "config"
   );
 }
 
@@ -209,8 +355,18 @@ function printUsage(io: CliIo): void {
   io.log("  agentic-sdd project list");
   io.log("  agentic-sdd project remove <name>");
   io.log("  agentic-sdd project inspect <name-or-target-repo>");
+  io.log("  agentic-sdd project config <name-or-target-repo>");
   io.log("  agentic-sdd doctor <name-or-target-repo>");
   io.log("  agentic-sdd next <name-or-target-repo>");
+  io.log("  agentic-sdd profile list");
+  io.log("  agentic-sdd profile show <profile-name>");
+  io.log("  agentic-sdd agent list");
+  io.log("  agentic-sdd agent show <agent-name>");
+  io.log("  agentic-sdd env list");
+  io.log("  agentic-sdd env show <environment-name>");
+  io.log("  agentic-sdd config init [--force]");
+  io.log("  agentic-sdd config show");
+  io.log("  agentic-sdd config validate");
 }
 
 if (isDirectExecution()) {

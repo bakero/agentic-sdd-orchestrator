@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "agents": [
+    {
+      "name": "gemini_product_owner",
+      "role": "Product Owner",
+      "description": "Runs functional discovery, writes acceptance criteria, and keeps scope under human control before any technical work starts.",
+      "defaultProfile": "functional_discovery",
+      "executionMode": "manual",
+      "provider": "gemini",
+      "externalReference": {
+        "kind": "gem",
+        "name": "Agentic SDD Product Owner"
+      },
+      "skills": [
+        "requirements_interview",
+        "acceptance_criteria",
+        "scope_control",
+        "one_question_at_a_time",
+        "cowork_handoff_preparation"
+      ],
+      "responsibilities": [
+        "clarify the problem and desired outcome with the human",
+        "write testable acceptance criteria",
+        "keep the functional spec scoped to what was actually asked",
+        "hand off a clear Context Pack to Codex Architect"
+      ],
+      "forbiddenActions": [
+        "writing implementation code",
+        "approving its own technical design",
+        "merging or creating pull requests"
+      ]
+    },
+    {
+      "name": "codex_architect",
+      "role": "Technical Architect",
+      "description": "Turns an approved functional spec into a technical spec and test plan, without writing production code.",
+      "defaultProfile": "technical_specification",
+      "executionMode": "manual",
+      "provider": "codex",
+      "externalReference": {
+        "kind": "custom_gpt",
+        "name": "Agentic SDD Technical Architect"
+      },
+      "skills": [
+        "repo_analysis",
+        "minimal_context_pack",
+        "technical_specification",
+        "test_plan_design",
+        "implementation_boundaries",
+        "cowork_handoff_preparation"
+      ],
+      "responsibilities": [
+        "analyze the repository only as far as needed to design the change",
+        "write a technical spec that stays inside the approved functional scope",
+        "define a test plan the implementer can follow",
+        "set explicit implementation boundaries for the next agent"
+      ],
+      "forbiddenActions": [
+        "expanding functional scope without human approval",
+        "writing production code",
+        "merging or creating pull requests"
+      ]
+    },
+    {
+      "name": "claude_implementer",
+      "role": "Implementer",
+      "description": "Implements the technical spec, writes and runs tests, and stays inside the defined implementation boundaries.",
+      "defaultProfile": "implementation",
+      "executionMode": "manual",
+      "provider": "claude",
+      "externalReference": {
+        "kind": "claude_project",
+        "name": "Agentic SDD Implementer"
+      },
+      "skills": [
+        "implementation_boundaries",
+        "code_implementation",
+        "test_execution",
+        "token_discipline",
+        "cowork_handoff_preparation"
+      ],
+      "responsibilities": [
+        "implement only what the technical spec and test plan describe",
+        "write and run the tests defined in the test plan",
+        "flag anything that requires expanding scope instead of doing it silently",
+        "prepare a clear implementation report for review"
+      ],
+      "forbiddenActions": [
+        "changing the technical spec without escalating",
+        "skipping or weakening tests to make them pass",
+        "merging or creating pull requests",
+        "calling external AI APIs from generated code"
+      ]
+    },
+    {
+      "name": "codex_reviewer",
+      "role": "Technical Reviewer",
+      "description": "Reviews the implementation against the technical spec and test plan, and blocks anything that does not meet the bar.",
+      "defaultProfile": "technical_review",
+      "executionMode": "manual",
+      "provider": "codex",
+      "externalReference": {
+        "kind": "custom_gpt",
+        "name": "Agentic SDD Technical Reviewer"
+      },
+      "skills": [
+        "technical_review",
+        "repo_analysis",
+        "cost_control",
+        "cowork_handoff_preparation"
+      ],
+      "responsibilities": [
+        "verify the implementation matches the technical spec",
+        "verify the required tests exist and pass",
+        "reject with clear, actionable findings when the bar is not met",
+        "avoid rubber-stamping under time or cost pressure"
+      ],
+      "forbiddenActions": [
+        "approving its own implementation changes",
+        "silently expanding or shrinking review scope",
+        "merging or creating pull requests"
+      ]
+    },
+    {
+      "name": "gemini_validator",
+      "role": "Functional Validator",
+      "description": "Confirms the delivered change actually satisfies the original functional intent before it is marked ready for PR.",
+      "defaultProfile": "functional_validation",
+      "executionMode": "manual",
+      "provider": "gemini",
+      "externalReference": {
+        "kind": "gem",
+        "name": "Agentic SDD Functional Validator"
+      },
+      "skills": [
+        "functional_validation",
+        "acceptance_criteria",
+        "scope_control",
+        "cowork_handoff_preparation"
+      ],
+      "responsibilities": [
+        "validate the change against the original functional spec and acceptance criteria",
+        "confirm no unapproved scope was added or dropped",
+        "confirm the change is ready for a human-reviewed pull request",
+        "escalate to the human when functional intent is unclear or unmet"
+      ],
+      "forbiddenActions": [
+        "approving functional validation for its own prior work",
+        "creating or merging the pull request",
+        "changing implementation code directly"
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "name": "functional_discovery",
+      "description": "Functional discovery and acceptance criteria definition.",
+      "promptTemplate": "gemini_product_owner.md",
+      "contextPolicy": "minimal",
+      "recommendedReasoning": "high"
+    },
+    {
+      "name": "technical_specification",
+      "description": "Technical design, test plan, and implementation boundaries from an approved functional spec.",
+      "promptTemplate": "codex_architect.md",
+      "contextPolicy": "targeted",
+      "recommendedReasoning": "high"
+    },
+    {
+      "name": "implementation",
+      "description": "Implementation of an approved technical spec, including tests.",
+      "promptTemplate": "claude_implementer.md",
+      "contextPolicy": "targeted",
+      "recommendedReasoning": "medium"
+    },
+    {
+      "name": "technical_review",
+      "description": "Review of an implementation against its technical spec and test plan.",
+      "promptTemplate": "codex_reviewer.md",
+      "contextPolicy": "targeted",
+      "recommendedReasoning": "high"
+    },
+    {
+      "name": "functional_validation",
+      "description": "Validation of a delivered change against the original functional intent.",
+      "promptTemplate": "gemini_functional_validator.md",
+      "contextPolicy": "minimal",
+      "recommendedReasoning": "medium"
+    }
+  ],
+  "skills": [
+    {
+      "name": "requirements_interview",
+      "description": "Ask focused questions to turn a vague idea into a testable functional scope.",
+      "appliesTo": ["gemini_product_owner"],
+      "promptGuidance": "Ask one question at a time. Prefer closed questions when a closed question is enough to unblock scope.",
+      "antiPatterns": ["asking several questions in one turn", "assuming unstated requirements"]
+    },
+    {
+      "name": "acceptance_criteria",
+      "description": "Write acceptance criteria that are specific enough to test.",
+      "appliesTo": ["gemini_product_owner", "gemini_validator"],
+      "promptGuidance": "Each criterion should be checkable as pass/fail by someone who did not write it.",
+      "antiPatterns": ["vague criteria like 'works correctly'", "criteria that describe implementation instead of behavior"]
+    },
+    {
+      "name": "scope_control",
+      "description": "Keep work within the agreed scope.",
+      "appliesTo": ["gemini_product_owner", "codex_architect", "claude_implementer", "gemini_validator"],
+      "promptGuidance": "If a change seems to require expanding scope, stop and flag it instead of proceeding.",
+      "antiPatterns": ["silently adding unrequested improvements", "silently dropping agreed requirements"]
+    },
+    {
+      "name": "one_question_at_a_time",
+      "description": "Never overwhelm the human with a batch of questions.",
+      "appliesTo": ["gemini_product_owner"],
+      "promptGuidance": "Ask the single most blocking question first. Wait for the answer before asking the next one.",
+      "antiPatterns": ["listing many open questions at once"]
+    },
+    {
+      "name": "repo_analysis",
+      "description": "Read only the repository context actually needed for the current decision.",
+      "appliesTo": ["codex_architect", "codex_reviewer"],
+      "promptGuidance": "Start from the required-reading list before exploring further; expand only if it is insufficient.",
+      "antiPatterns": ["reading the entire repository before starting", "skipping the provided required reading"]
+    },
+    {
+      "name": "minimal_context_pack",
+      "description": "Prepare the smallest context pack that safely unblocks the next agent.",
+      "appliesTo": ["gemini_product_owner", "codex_architect"],
+      "promptGuidance": "List only files the next agent actually needs to read; avoid speculative inclusions.",
+      "antiPatterns": ["dumping the whole repo tree into the context pack"]
+    },
+    {
+      "name": "technical_specification",
+      "description": "Translate an approved functional spec into an unambiguous technical design.",
+      "appliesTo": ["codex_architect"],
+      "promptGuidance": "Every technical decision should trace back to a functional requirement or an explicit constraint.",
+      "antiPatterns": ["introducing technical scope with no functional justification"]
+    },
+    {
+      "name": "test_plan_design",
+      "description": "Define the tests that will prove the implementation is correct.",
+      "appliesTo": ["codex_architect"],
+      "promptGuidance": "Cover the acceptance criteria first, then edge cases explicitly called out in the spec.",
+      "antiPatterns": ["a test plan with no mapping back to acceptance criteria"]
+    },
+    {
+      "name": "implementation_boundaries",
+      "description": "State clearly what the implementer may and may not touch.",
+      "appliesTo": ["codex_architect", "claude_implementer"],
+      "promptGuidance": "List explicit forbidden files/areas alongside the allowed change surface.",
+      "antiPatterns": ["leaving implementation scope implicit"]
+    },
+    {
+      "name": "code_implementation",
+      "description": "Implement the technical spec faithfully, with tests.",
+      "appliesTo": ["claude_implementer"],
+      "promptGuidance": "Match the technical spec's decisions; escalate instead of silently reinterpreting them.",
+      "antiPatterns": ["diverging from the technical spec without flagging it", "shipping code with no tests"]
+    },
+    {
+      "name": "test_execution",
+      "description": "Actually run the tests and report real results, not assumed results.",
+      "appliesTo": ["claude_implementer", "codex_reviewer"],
+      "promptGuidance": "Report the exact command run and its real output; never assert a result without running it.",
+      "antiPatterns": ["claiming tests pass without running them"]
+    },
+    {
+      "name": "technical_review",
+      "description": "Verify an implementation against its spec and test plan, and block substandard work.",
+      "appliesTo": ["codex_reviewer"],
+      "promptGuidance": "Check spec conformance and real test results before approving; state findings clearly when rejecting.",
+      "antiPatterns": ["approving based on the implementer's description instead of verifying it"]
+    },
+    {
+      "name": "functional_validation",
+      "description": "Confirm the delivered change actually satisfies the original functional intent.",
+      "appliesTo": ["gemini_validator"],
+      "promptGuidance": "Re-check against the original functional spec and acceptance criteria, not against the technical spec.",
+      "antiPatterns": ["validating technical correctness only, without checking functional intent"]
+    },
+    {
+      "name": "cost_control",
+      "description": "Avoid unnecessary token/credit spend during a review or validation pass.",
+      "appliesTo": ["codex_reviewer", "gemini_validator"],
+      "promptGuidance": "Reuse the context pack already prepared instead of re-deriving it from scratch.",
+      "antiPatterns": ["re-reading the entire repository when a targeted diff review is sufficient"]
+    },
+    {
+      "name": "token_discipline",
+      "description": "Keep responses and context usage proportional to the task.",
+      "appliesTo": ["claude_implementer"],
+      "promptGuidance": "Prefer the smallest correct change; avoid speculative refactors outside the requested scope.",
+      "antiPatterns": ["large unrequested rewrites", "verbose responses that restate context back to the user"]
+    },
+    {
+      "name": "cowork_handoff_preparation",
+      "description": "Leave the workflow state and Context Pack ready for the next agent to pick up cleanly.",
+      "appliesTo": [
+        "gemini_product_owner",
+        "codex_architect",
+        "claude_implementer",
+        "codex_reviewer",
+        "gemini_validator"
+      ],
+      "promptGuidance": "Update status.md and the Context Pack for the next agent before ending the turn.",
+      "antiPatterns": ["ending a turn without a clear next action for the next agent"]
+    },
+    {
+      "name": "browser_execution_safety",
+      "description": "Operate safely when the execution surface is a browser-based tool instead of a local shell.",
+      "appliesTo": [
+        "gemini_product_owner",
+        "codex_architect",
+        "claude_implementer",
+        "codex_reviewer",
+        "gemini_validator"
+      ],
+      "promptGuidance": "Do not assume local file or shell access exists; work from the pasted context only.",
+      "antiPatterns": ["assuming a browser session can read local files or run shell commands"]
+    },
+    {
+      "name": "powershell_command_safety",
+      "description": "Give command examples that work correctly in Windows PowerShell.",
+      "appliesTo": ["claude_implementer", "codex_architect"],
+      "promptGuidance": "Use PowerShell syntax and cmdlets; do not assume bash-only tools are present.",
+      "antiPatterns": ["giving bash-only command examples on a PowerShell environment"]
+    }
+  ],
+  "environments": [
+    {
+      "name": "local_windows_powershell",
+      "os": "windows",
+      "shell": "powershell",
+      "commandStyle": "powershell",
+      "executionSurface": "local_shell",
+      "tools": {
+        "git": true,
+        "gh": true,
+        "node": true,
+        "npm": true,
+        "browser": true
+      },
+      "executionRules": [
+        "use PowerShell-compatible commands only",
+        "prefer git and gh when available for repository operations",
+        "do not use bash-only syntax or commands",
+        "stop and ask the human if a step requires authentication"
+      ],
+      "forbiddenActions": [
+        "running bash-only commands",
+        "assuming a Unix-style path separator"
+      ],
+      "expectedOutputFormat": "plain text command blocks using PowerShell syntax"
+    },
+    {
+      "name": "claude_cowork_browser",
+      "os": "any",
+      "shell": "none",
+      "commandStyle": "none",
+      "executionSurface": "claude_cowork_browser",
+      "tools": {
+        "git": false,
+        "gh": false,
+        "node": false,
+        "npm": false,
+        "browser": true
+      },
+      "executionRules": [
+        "treat the pasted prompt and its required reading as the only available context",
+        "do not assume local file or shell access",
+        "ask the human to run and paste back the output of any command that is needed"
+      ],
+      "forbiddenActions": [
+        "assuming direct shell or filesystem access",
+        "assuming the ability to run commands without the human relaying them"
+      ],
+      "expectedOutputFormat": "a single self-contained response the human can act on directly"
+    },
+    {
+      "name": "manual_copy_paste",
+      "os": "any",
+      "shell": "none",
+      "commandStyle": "none",
+      "executionSurface": "manual_copy_paste",
+      "tools": {
+        "git": false,
+        "gh": false,
+        "node": false,
+        "npm": false,
+        "browser": false
+      },
+      "executionRules": [
+        "assume nothing beyond the exact text the human copies and pastes",
+        "keep the response self-contained and easy to copy back out"
+      ],
+      "forbiddenActions": [
+        "assuming any tool, shell, or browser access",
+        "assuming state persists between turns without the human re-pasting it"
+      ],
+      "expectedOutputFormat": "a single self-contained response the human can copy elsewhere"
+    },
+    {
+      "name": "local_macos_zsh",
+      "os": "macos",
+      "shell": "zsh",
+      "commandStyle": "bash",
+      "executionSurface": "local_shell",
+      "tools": {
+        "git": true,
+        "gh": true,
+        "node": true,
+        "npm": true,
+        "browser": true
+      },
+      "executionRules": [
+        "use POSIX-compatible/bash-style commands",
+        "prefer git and gh when available for repository operations",
+        "stop and ask the human if a step requires authentication"
+      ],
+      "forbiddenActions": [
+        "running PowerShell-only commands",
+        "assuming a Windows-style path separator"
+      ],
+      "expectedOutputFormat": "plain text command blocks using bash/zsh syntax"
+    },
+    {
+      "name": "local_linux_bash",
+      "os": "linux",
+      "shell": "bash",
+      "commandStyle": "bash",
+      "executionSurface": "local_shell",
+      "tools": {
+        "git": true,
+        "gh": true,
+        "node": true,
+        "npm": true,
+        "browser": true
+      },
+      "executionRules": [
+        "use POSIX-compatible/bash-style commands",
+        "prefer git and gh when available for repository operations",
+        "stop and ask the human if a step requires authentication"
+      ],
+      "forbiddenActions": [
+        "running PowerShell-only commands",
+        "assuming a Windows-style path separator"
+      ],
+      "expectedOutputFormat": "plain text command blocks using bash syntax"
+    }
+  ]
+}

@@ -6,7 +6,8 @@ Agentic SDD Orchestrator is a repository-connected workflow kit for human-superv
 
 - `v0.1-demo` is tagged and remains the source-of-truth demo milestone.
 - `v0.2-cli` is tagged and focused on CLI packaging, usability, docs, and verification.
-- `v0.3` is a technical release candidate that adds a local project registry, a `doctor` command, and a `next` command so the CLI is easier to use across multiple target repositories.
+- `v0.3-project-manager-doctor` is tagged and adds a local project registry, a `doctor` command, and a `next` command so the CLI is easier to use across multiple target repositories.
+- `v0.4` is a technical release candidate that adds agent, skill, and environment profiles so the orchestrator can define which agents exist, how they run, and what environment they run in.
 - The recommended local development command is now `npm run agentic-sdd -- ...`.
 
 ## What the product does
@@ -113,6 +114,22 @@ npm run agentic-sdd -- next demo
 
 Open `.agent_runtime/next_prompt.md` inside `$sandbox` and hand it to a human-supervised tool (Cowork, Codex, Gemini, Claude). See [v0.3 release notes](./docs/releases/v0.3-project-manager-doctor.md) for the full command reference.
 
+## v0.4 quickstart: agent, skill & environment profiles
+
+v0.4 adds a local, inspectable configuration model for agents, prompt profiles, skills, and execution environments. Run from PowerShell inside this repository:
+
+```powershell
+npm run agentic-sdd -- config init
+npm run agentic-sdd -- config validate
+npm run agentic-sdd -- agent list
+npm run agentic-sdd -- agent show codex_architect
+npm run agentic-sdd -- profile list
+npm run agentic-sdd -- env list
+npm run agentic-sdd -- env show claude_cowork_browser
+```
+
+`config init` creates `.agentic-sdd/config.json` (gitignored, local to this machine) from the built-in defaults; without it, every command already falls back to those same defaults. See [v0.4 release notes](./docs/releases/v0.4-agent-skill-environment-profiles.md) for the full command reference, default agents, skills, and environments.
+
 ## Safety guarantees
 
 - GitHub and `status.md` remain the source of truth.
@@ -121,6 +138,8 @@ Open `.agent_runtime/next_prompt.md` inside `$sandbox` and hand it to a human-su
 - No dashboard, hosted control plane, or API mode is introduced.
 - No autonomous agent execution or automatic merge is performed.
 - `doctor` and `next` (v0.3) are strictly read-only against target repositories.
+- `profile`, `agent`, `env`, `config show`/`validate`, and `project config` (v0.4) are strictly read-only; `config init` only ever writes inside the orchestrator's own `.agentic-sdd/` directory.
+- `automatic` execution mode (v0.4) is a declared, validated setting only — no provider is called or auto-selected yet.
 - Human review and final merge remain required.
 
 ## Current limitations
@@ -135,6 +154,7 @@ See [known limitations](./docs/product/known-limitations.md) for the detailed li
 
 ## Roadmap
 
+- [v0.4 agent, skill & environment profiles release notes](./docs/releases/v0.4-agent-skill-environment-profiles.md)
 - [v0.3 project manager and doctor release notes](./docs/releases/v0.3-project-manager-doctor.md)
 - [v0.2 CLI packaging release notes](./docs/releases/v0.2-cli-packaging.md)
 - [Product backlog](./docs/product/backlog.md)
