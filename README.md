@@ -137,6 +137,7 @@ See [known limitations](./docs/product/known-limitations.md) for the detailed li
 
 - [v0.3 project manager and doctor release notes](./docs/releases/v0.3-project-manager-doctor.md)
 - [v0.2 CLI packaging release notes](./docs/releases/v0.2-cli-packaging.md)
+- [Product backlog](./docs/product/backlog.md)
 - [Product roadmap](./docs/product/roadmap.md)
 - [Product vision](./docs/product/vision.md)
 - [Architecture overview](./docs/architecture/overview.md)
