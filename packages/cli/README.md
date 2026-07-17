@@ -4,7 +4,7 @@ Local CLI for installing and operating the Agentic SDD runtime kit.
 
 This CLI is currently intended for local demo and developer usage. It prepares a target repository for semi-assisted Cowork mode; it does not execute external AI models itself.
 
-v0.3 is a local development CLI release, not an npm-published standalone package yet.
+v0.4 is a local development CLI release, not an npm-published standalone package yet.
 
 ## Current commands
 
@@ -16,8 +16,18 @@ v0.3 is a local development CLI release, not an npm-published standalone package
 - `agentic-sdd project list`
 - `agentic-sdd project remove <name>`
 - `agentic-sdd project inspect <name-or-target-repo>`
+- `agentic-sdd project config <name-or-target-repo>`
 - `agentic-sdd doctor <name-or-target-repo>`
 - `agentic-sdd next <name-or-target-repo>`
+- `agentic-sdd profile list`
+- `agentic-sdd profile show <profile-name>`
+- `agentic-sdd agent list`
+- `agentic-sdd agent show <agent-name>`
+- `agentic-sdd env list`
+- `agentic-sdd env show <environment-name>`
+- `agentic-sdd config init [--force]`
+- `agentic-sdd config show`
+- `agentic-sdd config validate`
 
 When running from this repository, use the packaged local script:
 
@@ -79,6 +89,30 @@ Get only the single most important next safe action:
 npm run agentic-sdd -- next <name-or-target-repo>
 ```
 
+Create a local, editable configuration file and validate it:
+
+```bash
+npm run agentic-sdd -- config init
+npm run agentic-sdd -- config validate
+```
+
+Inspect agents, prompt profiles, and execution environments:
+
+```bash
+npm run agentic-sdd -- agent list
+npm run agentic-sdd -- agent show codex_architect
+npm run agentic-sdd -- profile list
+npm run agentic-sdd -- profile show technical_specification
+npm run agentic-sdd -- env list
+npm run agentic-sdd -- env show claude_cowork_browser
+```
+
+Preview which agents/environments would apply to a project:
+
+```bash
+npm run agentic-sdd -- project config <name-or-target-repo>
+```
+
 ## End-to-end quickstart
 
 See [end-to-end-cowork-mvp.md](./docs/end-to-end-cowork-mvp.md) for the full local Cowork-mode flow.
@@ -117,7 +151,8 @@ The `project` commands manage a local registry of target repositories so you can
 - `project add <target-repo> --name <name>` validates the path exists and is a git repository, rejects duplicate names, and writes the registry with an absolute, normalized path;
 - `project list` prints registered names and paths, or a message plus a suggestion when none are registered;
 - `project remove <name>` removes the registry entry only; it never deletes or modifies target repository files, and does not prompt for confirmation;
-- `project inspect <name-or-target-repo>` resolves a registered name (or falls back to a direct path) and reports git/runtime/package-script/feature status.
+- `project inspect <name-or-target-repo>` resolves a registered name (or falls back to a direct path) and reports git/runtime/package-script/feature status;
+- `project config <name-or-target-repo>` resolves a registered name (or falls back to a direct path) and prints which agents/profiles/environments the orchestrator's effective config would apply to it. It never writes to the project or the orchestrator config.
 
 ## `doctor` and `next`
 
@@ -125,20 +160,36 @@ The `project` commands manage a local registry of target repositories so you can
 
 `next <name-or-target-repo>` reuses the same diagnostics as `doctor` but prints only the single most important next safe action - a short summary, the command to run (if any), and why. It does not execute the recommended action, call an AI model, or modify any files.
 
+## Agent, skill & environment profiles (`profile`, `agent`, `env`, `config`)
+
+v0.4 adds a local, versioned configuration model covering agents, prompt profiles, skills, and execution environments:
+
+- built-in defaults live at `packages/cli/src/config/defaults/default-config.json` (5 agents, 5 profiles, 18 skills, 5 environments);
+- `config init` creates an editable local copy at `.agentic-sdd/config.json` (gitignored); without it, every command falls back to the built-in defaults automatically;
+- `config show` prints the effective config (local override if present, otherwise defaults) with its source;
+- `config validate` checks for duplicate names, dangling profile/skill references, invalid execution modes/context policies/reasoning levels, and missing required environment fields, exiting non-zero on any error;
+- `profile list`/`show`, `agent list`/`show`, and `env list`/`show` inspect the effective config directly.
+
+Each agent declares a role, default prompt profile, execution mode (`manual` or `automatic` - v0.4 only declares and validates `automatic`, it never calls a provider), a recommended provider, an optional external tool reference (a Gemini Gem / Custom GPT / Claude Project name - a label only, never called by the orchestrator), a skill list, responsibilities, and forbidden actions. Each environment declares OS, shell, command style, execution surface, available tools, execution rules, and forbidden actions, so prompt/command guidance can eventually adapt correctly between local PowerShell, local bash/zsh, Claude Cowork's browser surface, and plain manual copy/paste.
+
+None of this renders a Cowork prompt yet; `lib/prompt-context.ts`'s resolution helpers exist as the seam the v0.5 handoff generator will build on.
+
 ## Demo-ready workflow
 
-The intended v0.3 local/dev flow is:
+The intended v0.4 local/dev flow is:
 
-1. `project add` the local sandbox under a short name;
-2. run `doctor`/`next` to see what is missing;
-3. run `install` on that sandbox;
-4. run `init-feature` with a real or demo issue number;
-5. re-run `doctor`/`next` to confirm progress;
-6. go into the target repository;
-7. run `npm install`;
-8. run `npm run agent:next`;
-9. open `.agent_runtime/next_prompt.md`;
-10. paste the prompt into Claude Cowork, Codex, Gemini, or a similar tool.
+1. `config init` and `config validate` to set up and check the local configuration;
+2. `agent list`/`show`, `profile list`/`show`, `env list`/`show` to see what agents and environments are available;
+3. `project add` the local sandbox under a short name;
+4. run `doctor`/`next` to see what is missing;
+5. run `install` on that sandbox;
+6. run `init-feature` with a real or demo issue number;
+7. re-run `doctor`/`next` to confirm progress;
+8. go into the target repository;
+9. run `npm install`;
+10. run `npm run agent:next`;
+11. open `.agent_runtime/next_prompt.md`;
+12. paste the prompt into Claude Cowork, Codex, Gemini, or a similar tool.
 
 Human final merge remains required.
 

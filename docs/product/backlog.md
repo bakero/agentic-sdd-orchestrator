@@ -18,8 +18,9 @@ This document consolidates and prioritizes every product idea discussed for the 
 | `v0.1-demo` | Cowork-mode MVP: inspect, install runtime kit, init-feature, generate first prompt. Proves the semi-assisted flow end to end. | DONE |
 | `v0.2-cli` | Local CLI packaging (`npm run agentic-sdd -- ...`), usability, validation, docs, and verification. No safety-model changes. | DONE |
 | `v0.3-project-manager-doctor` | Local project registry, `project` command group (add/list/remove/inspect), `doctor` (read-only diagnostics), `next` (single recommended action). | DONE |
+| `v0.4-agent-skill-environment-profiles` | Local, versioned agent/skill/profile/environment configuration model; `profile`/`agent`/`env`/`config` command groups; `project config` preview; a read-only resolution module (`lib/prompt-context.ts`) as the seam for v0.5's handoff generator. | DONE |
 
-These three releases establish the safety model this backlog must not weaken: semi-assisted execution only, no autonomous agent execution, no auto-merge, no external AI API calls from the orchestrator itself, GitHub + `status.md` as the source of truth, local filesystem only.
+These releases establish the safety model this backlog must not weaken: semi-assisted execution only, no autonomous agent execution, no auto-merge, no external AI API calls from the orchestrator itself, GitHub + `status.md` as the source of truth, local filesystem only.
 
 ---
 
@@ -34,7 +35,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A structured, per-orchestrator-repo definition of each agent role (e.g. gemini-product-owner, codex-architect, claude-implementer, codex-reviewer, gemini-functional-validator) including its identity, responsibilities, and default settings.
 - **Rationale:** Today agent roles exist only as prompt templates and Markdown role docs inside the runtime kit. There is no single configurable record the CLI can read, validate, or use to drive `doctor`/`next` recommendations for agent setup.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE — `AgentDefinition` in `packages/cli/src/config/types.ts`, 5 default agents in `packages/cli/src/config/defaults/default-config.json`, `agent list`/`agent show` commands.
 - **Dependencies:** none
 
 ### Execution mode per agent: automatic/manual
@@ -44,7 +45,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A per-agent setting that records whether that role's step is expected to run manually (human pastes the prompt) or automatically (future API mode). In v0.4 this is a declared setting only — no automatic execution is implemented.
 - **Rationale:** Needed so later multi-agent handoff and API-mode work (P3) have a place to read "is this role allowed to run unattended" without redesigning the config shape later.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE — `executionMode: "manual" | "automatic"` on every agent, validated by `config validate`. `automatic` is declared and validated only; no provider is called or auto-selected, exactly as scoped.
 - **Dependencies:** Agent configuration
 
 ### Agent profiles
@@ -54,7 +55,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A named bundle of agent configuration, skill pack, prompt template set, and environment preference that can be applied to a project (e.g. "strict-review", "fast-draft").
 - **Rationale:** Different projects/teams want different agent behavior without redefining every agent from scratch each time.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE (single global effective config) / DEFERRED (per-project profile selection) — `ProfileDefinition`, 5 default profiles, `profile list`/`profile show`, and `project config` preview a project against the one shared effective config; assigning a *different* profile per project is not implemented (see known-limitations.md).
 - **Dependencies:** Agent configuration, Skill packs per role, Prompt templates per profile
 
 ### Skill packs per role
@@ -64,7 +65,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A named, reusable set of capabilities/constraints/context-reading rules attached to a role (e.g. what a codex-reviewer is allowed to inspect, what a claude-implementer must never touch).
 - **Rationale:** The runtime kit already encodes some of this in `.agents/rules/roles/*.md`; a skill pack formalizes it as a reusable, composable unit instead of one fixed file per role.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE — `SkillDefinition` with `appliesTo`/`promptGuidance`/`antiPatterns`, 18 default skills covering every role, `skillsForAgent()` resolver.
 - **Dependencies:** Agent configuration
 
 ### Prompt templates per profile
@@ -74,7 +75,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** Allow a profile to select or override which `.agents/prompts/*.md`-style template is rendered for each role, instead of always using the single runtime-kit default.
 - **Rationale:** Different teams phrase constraints differently; hard-coding one template per role blocks customization that the profile concept is meant to enable.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE (reference only) — every profile carries a `promptTemplate` reference, checked for a plausible name by `config validate`. Actually rendering a prompt from that reference is v0.5 scope.
 - **Dependencies:** Agent profiles
 
 ### External agent references: Gemini Gems, Custom GPTs, Claude Projects
@@ -84,7 +85,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A way to record, per agent role, a reference to an external hosted assistant configuration (a Gemini Gem, a Custom GPT, a Claude Project) that the human should paste the generated prompt into. This is a reference/label only — the orchestrator does not call these services.
 - **Rationale:** Many users already have a curated Gem/GPT/Project for a given role; the orchestrator should be able to say "paste this into your Codex Reviewer GPT" instead of a generic instruction, without ever calling an external AI API itself.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE — `ExternalReference { kind: "gem" | "custom_gpt" | "claude_project" | "none", name }` on every default agent, shown by `agent show`; label only, never called.
 - **Dependencies:** Agent configuration
 
 ### Environment profiles
@@ -94,7 +95,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A named record of the execution environment a human/agent will operate in for a given project: shell type (PowerShell/bash), OS, whether Claude Cowork or a browser-based tool is used, and which local tools are expected to be available.
 - **Rationale:** Prompt instructions and command examples currently assume one shell/environment; environment profiles let the orchestrator tailor generated instructions to the actual target environment.
 - **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Status:** DONE — `EnvironmentDefinition`, 5 default environments (`local_windows_powershell`, `claude_cowork_browser`, `manual_copy_paste`, `local_macos_zsh`, `local_linux_bash`), `env list`/`env show` commands.
 - **Dependencies:** none
 
 ### Claude Cowork execution instructions
@@ -103,8 +104,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Claude Cowork execution instructions
 - **Description:** A documented, generatable instruction block explaining exactly how to hand a rendered prompt to Claude Cowork for a given environment profile.
 - **Rationale:** "Open `.agent_runtime/next_prompt.md` and paste into Cowork" is currently a single generic instruction; it needs to become environment-aware once environment profiles exist.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.4 (declared rules) / v0.5 (generated per-handoff instructions)
+- **Status:** PARTIAL — the `claude_cowork_browser` environment declares its execution rules and forbidden actions (e.g. "do not assume local file or shell access"); actually generating a per-handoff instruction block from those rules is v0.5 scope.
 - **Dependencies:** Environment profiles
 
 ### Browser execution instructions
@@ -113,8 +114,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Browser execution instructions
 - **Description:** Equivalent generatable instructions for handing a rendered prompt to a browser-based tool (e.g. a web chat UI) instead of a desktop Cowork session.
 - **Rationale:** Not all users run Claude Cowork locally; some will paste the generated prompt into a browser tab. Instructions must reflect that path too.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.4 (declared rules) / v0.5 (generated per-handoff instructions)
+- **Status:** PARTIAL — the `manual_copy_paste` environment declares its execution rules and forbidden actions; generating per-handoff instructions from them is v0.5 scope, same as Claude Cowork execution instructions above.
 - **Dependencies:** Environment profiles
 
 ### Installed tools detection
@@ -123,8 +124,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Installed tools detection
 - **Description:** Extend `doctor`'s read-only diagnostics to detect which relevant local tools are installed (git, node, npm, tsx availability, etc.) as part of environment readiness.
 - **Rationale:** Environment profiles need real signal to validate against; detecting installed tools is the read-only diagnostic input that makes an environment profile actionable rather than declarative-only.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.5
+- **Status:** NOT_STARTED — v0.4 environments declare an expected `tools` map (git/gh/node/npm/browser) statically per environment definition, but nothing in v0.4 actually probes the local machine to confirm those tools are really installed. Deferred one version so it can be paired with `doctor`'s existing diagnostics.
 - **Dependencies:** Environment profiles
 
 ### PowerShell/bash command adaptation
@@ -133,8 +134,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** PowerShell/bash command adaptation
 - **Description:** Generate example commands (in doctor/next output, in rendered prompts) in the correct shell syntax for the resolved environment profile, instead of a single hard-coded style.
 - **Rationale:** The orchestrator must stay usable on Windows PowerShell (existing hard constraint) while also supporting bash-based environments; command examples should not silently assume one shell.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.4 (declared) / v0.5 (applied to generated output)
+- **Status:** PARTIAL — every environment declares a `commandStyle` (`powershell`/`bash`/`none`) and explicit forbidden actions (e.g. "do not use bash-only syntax"); no generated output yet actually switches its command examples based on that field, since no per-handoff generation exists until v0.5.
 - **Dependencies:** Environment profiles, Installed tools detection
 
 ### Multi-agent handoff chain
@@ -144,7 +145,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A structured, ordered description of the full agent handoff sequence (e.g. gemini-product-owner → codex-architect → claude-implementer → codex-reviewer → gemini-functional-validator) that the orchestrator can reason about beyond one next-action at a time.
 - **Rationale:** Today `next_agent` in `status.md` only encodes a single next hop; a first-class chain representation is the foundation for v0.5 (Multi-Agent Cowork Handoff) and for showing the user the whole path, not just the next step.
 - **Candidate version:** v0.4 (data model), v0.5 (full handoff behavior)
-- **Status:** NOT_STARTED
+- **Status:** PARTIAL — v0.4 delivered the per-step resolution primitives (`resolveAgentContext`/`resolveEnvironmentContext`/`resolveHandoffInputs` in `lib/prompt-context.ts`) that a chain walker will call at each hop, and each agent's `defaultProfile` implicitly encodes the standard gemini_product_owner → codex_architect → claude_implementer → codex_reviewer → gemini_validator order. There is no explicit, ordered chain data structure yet, and no code walks the chain end to end — that is still v0.5.
 - **Dependencies:** Agent configuration
 
 ### Structured agent inputs/outputs
@@ -153,8 +154,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Structured agent inputs/outputs
 - **Description:** A defined schema for what each agent role consumes (required reading, prior outputs) and produces (expected documents/state changes), independent of the free-text prompt rendering.
 - **Rationale:** Needed so handoffs can be validated mechanically (did the prior agent actually produce what the next agent needs) rather than only checked by the human reading the prompt.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.5
+- **Status:** NOT_STARTED — not implemented in v0.4; deferred to v0.5 alongside the full multi-agent handoff chain it depends on.
 - **Dependencies:** Multi-agent handoff chain
 
 ### Overall orchestration goal in every handoff
@@ -163,8 +164,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Overall orchestration goal in every handoff
 - **Description:** Every rendered prompt should restate the overall feature/issue goal, not only the current phase's task, so an agent never loses sight of why the current step matters.
 - **Rationale:** Prevents agent drift and scope creep across a long handoff chain; matches the existing safety principle of keeping agents scoped and auditable.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.5
+- **Status:** NOT_STARTED — not implemented in v0.4; no prompt is rendered yet, so there is nothing to restate a goal inside.
 - **Dependencies:** Structured agent inputs/outputs
 
 ### Expected outputs per agent
@@ -173,8 +174,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Expected outputs per agent
 - **Description:** Formalize, per role and per phase, the exact document(s)/state transition expected as output, building on the existing `expected_outputs`/`EXPECTED_OUTPUTS_BY_STATE` concept already present in the runtime kit's coordinator scripts.
 - **Rationale:** This already exists informally in the runtime coordinator; v0.4 should promote it into the profile/config system so it is configurable per profile rather than hard-coded.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.5
+- **Status:** NOT_STARTED — not implemented in v0.4; the `EXPECTED_OUTPUTS_BY_STATE` map remains only in the runtime-kit coordinator scripts, not yet promoted into this config model.
 - **Dependencies:** Structured agent inputs/outputs
 
 ### Configurable execution cycles
@@ -183,8 +184,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Configurable execution cycles
 - **Description:** Allow a project/profile to define how many review/implementation cycles are expected or allowed before escalation (e.g. implementation → review → rejected → re-implementation).
 - **Rationale:** The runtime kit's workflow contract already allows rejection loops (`TECHNICAL_REVIEW_REJECTED → IMPLEMENTATION_IN_PROGRESS`); this item makes that loop's expected bounds explicit and configurable instead of implicit and unbounded.
-- **Candidate version:** v0.4 (config surface), v0.6 (enforced budgets)
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4 (the agent/profile config model shipped, but no cycle/iteration bounds); folded fully into v0.6 rather than split across two versions.
 - **Dependencies:** Multi-agent handoff chain
 
 ### Max iteration limits
@@ -193,8 +194,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Max iteration limits
 - **Description:** A hard cap on how many times a given cycle (e.g. review rejection loop) may repeat before the workflow must escalate to a human decision.
 - **Rationale:** Prevents an unbounded rejection/rework loop from silently consuming time/tokens without human awareness.
-- **Candidate version:** v0.4 (config), v0.6 (enforcement + reporting)
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; folded fully into v0.6 alongside Configurable execution cycles.
 - **Dependencies:** Configurable execution cycles
 
 ### Stop conditions
@@ -203,8 +204,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Stop conditions
 - **Description:** A declared set of conditions under which the orchestrator must stop recommending further action and require explicit human input (e.g. max iterations reached, required document missing, conflicting state detected).
 - **Rationale:** Extends the existing blocked-state concept (`NEEDS_HUMAN_DECISION`, `TECHNICAL_REVIEW_REJECTED`, etc.) into a general, configurable mechanism rather than a fixed list.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; moved out to v0.6 alongside Max iteration limits, which it depends on and which was already scoped there.
 - **Dependencies:** Max iteration limits
 
 ### Human escalation rules
@@ -213,8 +214,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Human escalation rules
 - **Description:** Rules describing when and how the orchestrator should explicitly flag "a human must decide here," distinct from a normal next-action recommendation.
 - **Rationale:** `doctor`/`next` currently only report structural readiness; escalation rules add a semantic layer for "this needs a judgment call," which is essential once cycles/budgets can be exceeded.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; moved out to v0.6 alongside Stop conditions, which it depends on.
 - **Dependencies:** Stop conditions
 
 ### Token budget per agent
@@ -223,8 +224,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Token budget per agent
 - **Description:** A configurable expected/maximum token budget per agent role, extending the existing `context_budget` (XS/S/M/L/XL) concept already present in `status.md`'s Next Agent Cost Recommendation.
 - **Rationale:** Formalizes an existing informal practice (the Agent Cost Log already records context budget per phase) into a first-class, profile-configurable setting.
-- **Candidate version:** v0.4 (config), v0.6 (enforcement/estimation)
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; `ProfileDefinition.recommendedReasoning` exists but there is no numeric token budget field yet. Folded fully into v0.6.
 - **Dependencies:** Agent configuration
 
 ### Token budget per workflow
@@ -233,8 +234,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Token budget per workflow
 - **Description:** A configurable total token budget across an entire feature's handoff chain, aggregating per-agent budgets.
 - **Rationale:** Per-agent budgets alone don't answer "how much will this whole feature cost end to end"; this rolls them up.
-- **Candidate version:** v0.4 (config), v0.6 (enforcement/estimation)
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; folded fully into v0.6 alongside Token budget per agent.
 - **Dependencies:** Token budget per agent, Multi-agent handoff chain
 
 ### Estimated token consumption before execution
@@ -243,8 +244,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Estimated token consumption before execution
 - **Description:** Before a prompt is handed to a human/agent, estimate how many tokens it will likely consume, based on required reading size and prompt length.
 - **Rationale:** Lets a user decide whether to proceed with a given handoff before spending Cowork/API budget, directly supporting the token-budget items above.
-- **Candidate version:** v0.4 (data model), v0.6 (real estimation logic)
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; folded fully into v0.6 alongside the token budget and context/prompt size estimation items it depends on.
 - **Dependencies:** Context size estimation, Cowork prompt token estimation
 
 ### Context size estimation
@@ -253,8 +254,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Context size estimation
 - **Description:** Estimate the size (characters/approximate tokens) of the required-reading set for a given handoff before it is rendered.
 - **Rationale:** Required building block for "estimated token consumption before execution"; also useful on its own to flag an oversized required-reading set during `doctor`.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; moved out to v0.6 alongside the other token-budget/estimation items it supports.
 - **Dependencies:** Structured agent inputs/outputs
 
 ### Cowork prompt token estimation
@@ -263,8 +264,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Cowork prompt token estimation
 - **Description:** Estimate the token size of the fully rendered prompt itself (not just the required-reading set), so the estimate reflects what will actually be pasted into Cowork/a browser tool.
 - **Rationale:** Required-reading size and rendered-prompt size can differ significantly once templates, constraints, and context packs are included; both estimates are needed for an accurate pre-execution number.
-- **Candidate version:** v0.4
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — not implemented in v0.4; moved out to v0.6 alongside Context size estimation, which it builds on.
 - **Dependencies:** Prompt templates per profile, Context size estimation
 
 ---

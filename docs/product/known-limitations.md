@@ -32,3 +32,11 @@ This repository currently ships a local Cowork-mode MVP. The current limitations
 - `project remove` only edits the registry; it does not detect or clean up other references to a removed project;
 - `doctor`/`next` diagnostics are structural (file, folder, and script presence) rather than semantic; they do not validate the content of `status.md` or other documents;
 - registering a project does not install the runtime kit; `install` remains a separate, explicit step.
+
+## Agent, skill & environment profile limitations (v0.4)
+
+- there is no per-project configuration override yet; `project config` previews the single, shared orchestrator-level effective config, not a project-specific one;
+- `config init` writes a full copy of the defaults; there is no partial/patch override format, so editing a large local `config.json` by hand is the only customization path today;
+- `automatic` execution mode is declared and validated but has no runtime effect; no provider is called or recommended programmatically yet;
+- `config validate`'s `promptTemplate` check only looks for a plausible `.md`-style name; it does not verify the referenced template file exists on disk;
+- no prompt is rendered from this configuration yet; that is v0.5 scope (Multi-Agent Cowork Handoff).
