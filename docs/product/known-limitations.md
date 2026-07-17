@@ -25,3 +25,10 @@ This repository currently ships a local Cowork-mode MVP. The current limitations
 - prompt generation is local only;
 - the generated prompt still requires a human or coworking tool to execute it;
 - merge decisions remain manual.
+
+## Project registry limitations (v0.3)
+
+- the local project registry (`.agentic-sdd/projects.json`) is per-machine and per-orchestrator-checkout; it is gitignored and not shared or synced between machines or clones;
+- `project remove` only edits the registry; it does not detect or clean up other references to a removed project;
+- `doctor`/`next` diagnostics are structural (file, folder, and script presence) rather than semantic; they do not validate the content of `status.md` or other documents;
+- registering a project does not install the runtime kit; `install` remains a separate, explicit step.

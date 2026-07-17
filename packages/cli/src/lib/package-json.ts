@@ -5,7 +5,8 @@ export const REQUIRED_AGENT_SCRIPTS: Record<string, string> = {
   "agent:validate": "tsx scripts/agent/validate_workflow_state.ts",
   "agent:resolve": "tsx scripts/agent/resolve_next_action.ts",
   "agent:prompt": "tsx scripts/agent/render_agent_prompt.ts",
-  "agent:next": "npm run agent:validate && npm run agent:resolve && npm run agent:prompt"
+  "agent:next": "npm run agent:validate && npm run agent:resolve && npm run agent:prompt",
+  "agent:log-call": "tsx scripts/agent/write_agent_call.ts"
 };
 
 export const REQUIRED_AGENT_DEV_DEPENDENCIES: Record<string, string> = {
