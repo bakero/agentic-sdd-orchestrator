@@ -7,7 +7,8 @@ Agentic SDD Orchestrator is a repository-connected workflow kit for human-superv
 - `v0.1-demo` is tagged and remains the source-of-truth demo milestone.
 - `v0.2-cli` is tagged and focused on CLI packaging, usability, docs, and verification.
 - `v0.3-project-manager-doctor` is tagged and adds a local project registry, a `doctor` command, and a `next` command so the CLI is easier to use across multiple target repositories.
-- `v0.4` is a technical release candidate that adds agent, skill, and environment profiles so the orchestrator can define which agents exist, how they run, and what environment they run in.
+- `v0.4-agent-skill-environment-profiles` is tagged and adds agent, skill, and environment profiles so the orchestrator can define which agents exist, how they run, and what environment they run in.
+- `v0.5` is a technical release candidate that adds a multi-agent Cowork handoff system: a ready-to-paste prompt generated for the recommended agent, covering goal, inputs, expected outputs, and safety rules.
 - The recommended local development command is now `npm run agentic-sdd -- ...`.
 
 ## What the product does
@@ -130,6 +131,20 @@ npm run agentic-sdd -- env show claude_cowork_browser
 
 `config init` creates `.agentic-sdd/config.json` (gitignored, local to this machine) from the built-in defaults; without it, every command already falls back to those same defaults. See [v0.4 release notes](./docs/releases/v0.4-agent-skill-environment-profiles.md) for the full command reference, default agents, skills, and environments.
 
+## v0.5 quickstart: multi-agent Cowork handoff
+
+v0.5 generates a complete, ready-to-paste handoff prompt for the recommended agent, based on a project's registered feature and its current workflow state. Run from PowerShell inside this repository, after registering a project (see the v0.3 quickstart above):
+
+```powershell
+npm run agentic-sdd -- project list
+npm run agentic-sdd -- doctor demo
+npm run agentic-sdd -- handoff generate demo
+npm run agentic-sdd -- handoff write demo
+npm run agentic-sdd -- handoff show demo
+```
+
+`handoff generate` prints a metadata header (project, feature, current/target state, agent, environment) followed by the full prompt. `handoff write` saves it under `.agentic-sdd/handoffs/` (gitignored, local to this machine) as `handoff.json`, `prompt.md`, and `context_files.txt`; `handoff show` reprints the most recently written one. Copy the prompt into Claude Cowork, Codex, Gemini, or a manual copy-paste session - the orchestrator never executes it itself. See [v0.5 release notes](./docs/releases/v0.5-cowork-handoff-system.md) for the full command reference and what a handoff contains.
+
 ## Safety guarantees
 
 - GitHub and `status.md` remain the source of truth.
@@ -140,6 +155,8 @@ npm run agentic-sdd -- env show claude_cowork_browser
 - `doctor` and `next` (v0.3) are strictly read-only against target repositories.
 - `profile`, `agent`, `env`, `config show`/`validate`, and `project config` (v0.4) are strictly read-only; `config init` only ever writes inside the orchestrator's own `.agentic-sdd/` directory.
 - `automatic` execution mode (v0.4) is a declared, validated setting only — no provider is called or auto-selected yet.
+- `handoff generate`/`show`/`list` (v0.5) are strictly read-only against target repositories; `handoff write` only ever writes inside the orchestrator's own `.agentic-sdd/handoffs/` directory.
+- Every generated handoff prompt (v0.5) explicitly forbids auto-merge, external AI API calls, adding secrets, and deleting user files, and asks the agent not to merge or create a pull request itself.
 - Human review and final merge remain required.
 
 ## Current limitations
@@ -154,6 +171,7 @@ See [known limitations](./docs/product/known-limitations.md) for the detailed li
 
 ## Roadmap
 
+- [v0.5 multi-agent Cowork handoff system release notes](./docs/releases/v0.5-cowork-handoff-system.md)
 - [v0.4 agent, skill & environment profiles release notes](./docs/releases/v0.4-agent-skill-environment-profiles.md)
 - [v0.3 project manager and doctor release notes](./docs/releases/v0.3-project-manager-doctor.md)
 - [v0.2 CLI packaging release notes](./docs/releases/v0.2-cli-packaging.md)

@@ -19,6 +19,7 @@ This document consolidates and prioritizes every product idea discussed for the 
 | `v0.2-cli` | Local CLI packaging (`npm run agentic-sdd -- ...`), usability, validation, docs, and verification. No safety-model changes. | DONE |
 | `v0.3-project-manager-doctor` | Local project registry, `project` command group (add/list/remove/inspect), `doctor` (read-only diagnostics), `next` (single recommended action). | DONE |
 | `v0.4-agent-skill-environment-profiles` | Local, versioned agent/skill/profile/environment configuration model; `profile`/`agent`/`env`/`config` command groups; `project config` preview; a read-only resolution module (`lib/prompt-context.ts`) as the seam for v0.5's handoff generator. | DONE |
+| `v0.5-cowork-handoff-system` | Multi-agent Cowork handoff: `handoff generate`/`write`/`show`/`list`, a ported state→agent map (`lib/workflow-state-map.ts`), and a full lettered-section prompt (execution surface, environment, overall/step goals, agent profile, inputs, expected outputs, allowed paths, forbidden actions, validation commands, report format). | DONE |
 
 These releases establish the safety model this backlog must not weaken: semi-assisted execution only, no autonomous agent execution, no auto-merge, no external AI API calls from the orchestrator itself, GitHub + `status.md` as the source of truth, local filesystem only.
 
@@ -105,7 +106,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A documented, generatable instruction block explaining exactly how to hand a rendered prompt to Claude Cowork for a given environment profile.
 - **Rationale:** "Open `.agent_runtime/next_prompt.md` and paste into Cowork" is currently a single generic instruction; it needs to become environment-aware once environment profiles exist.
 - **Candidate version:** v0.4 (declared rules) / v0.5 (generated per-handoff instructions)
-- **Status:** PARTIAL — the `claude_cowork_browser` environment declares its execution rules and forbidden actions (e.g. "do not assume local file or shell access"); actually generating a per-handoff instruction block from those rules is v0.5 scope.
+- **Status:** DONE — `handoff generate` composes section A ("Execution surface") and section B ("Available environment") of every prompt from the resolved environment's rules, tools, and browser-specific caveat ("do not assume local file or shell access") when `executionSurface !== "local_shell"`. See `lib/handoff.ts`'s `composeHandoffPrompt`/`executionSurfaceSentence`.
 - **Dependencies:** Environment profiles
 
 ### Browser execution instructions
@@ -115,7 +116,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** Equivalent generatable instructions for handing a rendered prompt to a browser-based tool (e.g. a web chat UI) instead of a desktop Cowork session.
 - **Rationale:** Not all users run Claude Cowork locally; some will paste the generated prompt into a browser tab. Instructions must reflect that path too.
 - **Candidate version:** v0.4 (declared rules) / v0.5 (generated per-handoff instructions)
-- **Status:** PARTIAL — the `manual_copy_paste` environment declares its execution rules and forbidden actions; generating per-handoff instructions from them is v0.5 scope, same as Claude Cowork execution instructions above.
+- **Status:** DONE — same mechanism as Claude Cowork execution instructions above; `handoff generate --environment manual_copy_paste` composes the execution-surface and environment sections from that environment's declared rules.
 - **Dependencies:** Environment profiles
 
 ### Installed tools detection
@@ -124,8 +125,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Installed tools detection
 - **Description:** Extend `doctor`'s read-only diagnostics to detect which relevant local tools are installed (git, node, npm, tsx availability, etc.) as part of environment readiness.
 - **Rationale:** Environment profiles need real signal to validate against; detecting installed tools is the read-only diagnostic input that makes an environment profile actionable rather than declarative-only.
-- **Candidate version:** v0.5
-- **Status:** NOT_STARTED — v0.4 environments declare an expected `tools` map (git/gh/node/npm/browser) statically per environment definition, but nothing in v0.4 actually probes the local machine to confirm those tools are really installed. Deferred one version so it can be paired with `doctor`'s existing diagnostics.
+- **Candidate version:** v0.6
+- **Status:** NOT_STARTED — environments still only declare an expected `tools` map (git/gh/node/npm/browser) statically; `handoff generate` prints that declared map as-is and does not probe the local machine to confirm those tools are actually installed. Moved to v0.6 so it can be paired with the token/context estimation work already scoped there.
 - **Dependencies:** Environment profiles
 
 ### PowerShell/bash command adaptation
@@ -135,7 +136,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** Generate example commands (in doctor/next output, in rendered prompts) in the correct shell syntax for the resolved environment profile, instead of a single hard-coded style.
 - **Rationale:** The orchestrator must stay usable on Windows PowerShell (existing hard constraint) while also supporting bash-based environments; command examples should not silently assume one shell.
 - **Candidate version:** v0.4 (declared) / v0.5 (applied to generated output)
-- **Status:** PARTIAL — every environment declares a `commandStyle` (`powershell`/`bash`/`none`) and explicit forbidden actions (e.g. "do not use bash-only syntax"); no generated output yet actually switches its command examples based on that field, since no per-handoff generation exists until v0.5.
+- **Status:** DONE — `handoff generate`'s validation commands and environment section reflect the resolved environment's `commandStyle`/`shell` (e.g. `local_windows_powershell` prints PowerShell-oriented tool/command guidance, `claude_cowork_browser`/`manual_copy_paste` print "not applicable" instead of a shell). Validation commands themselves (`npm test`, `npm run agent:validate`, etc.) are shell-agnostic npm scripts, so no environment-specific command translation was needed for them.
 - **Dependencies:** Environment profiles, Installed tools detection
 
 ### Multi-agent handoff chain
@@ -144,8 +145,8 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Title:** Multi-agent handoff chain
 - **Description:** A structured, ordered description of the full agent handoff sequence (e.g. gemini-product-owner → codex-architect → claude-implementer → codex-reviewer → gemini-functional-validator) that the orchestrator can reason about beyond one next-action at a time.
 - **Rationale:** Today `next_agent` in `status.md` only encodes a single next hop; a first-class chain representation is the foundation for v0.5 (Multi-Agent Cowork Handoff) and for showing the user the whole path, not just the next step.
-- **Candidate version:** v0.4 (data model), v0.5 (full handoff behavior)
-- **Status:** PARTIAL — v0.4 delivered the per-step resolution primitives (`resolveAgentContext`/`resolveEnvironmentContext`/`resolveHandoffInputs` in `lib/prompt-context.ts`) that a chain walker will call at each hop, and each agent's `defaultProfile` implicitly encodes the standard gemini_product_owner → codex_architect → claude_implementer → codex_reviewer → gemini_validator order. There is no explicit, ordered chain data structure yet, and no code walks the chain end to end — that is still v0.5.
+- **Candidate version:** v0.4 (data model), v0.5 (single-hop handoff)
+- **Status:** PARTIAL — v0.5 delivered `lib/workflow-state-map.ts` (ported from the runtime kit's proven `state_map.ts`), which maps every modeled `current_state` to its recommended agent and `targetStates`, and `handoff generate` resolves one hop of that chain per call (current state → next agent → target state). There is still no explicit, walkable multi-hop chain object a caller can traverse in one call, and no code follows the chain across more than one handoff automatically — the human re-runs `handoff generate` after each step, which is intentional (keeps every hop a deliberate, human-gated action) but means the "full chain" representation itself remains unimplemented.
 - **Dependencies:** Agent configuration
 
 ### Structured agent inputs/outputs
@@ -155,7 +156,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** A defined schema for what each agent role consumes (required reading, prior outputs) and produces (expected documents/state changes), independent of the free-text prompt rendering.
 - **Rationale:** Needed so handoffs can be validated mechanically (did the prior agent actually produce what the next agent needs) rather than only checked by the human reading the prompt.
 - **Candidate version:** v0.5
-- **Status:** NOT_STARTED — not implemented in v0.4; deferred to v0.5 alongside the full multi-agent handoff chain it depends on.
+- **Status:** DONE (schema) / DEFERRED (mechanical validation) — the `Handoff` model (`lib/handoff-types.ts`) formalizes per-agent `context.inputFiles` and `expectedOutputs` as structured fields, and `INPUT_FILES_BY_STATE`/`EXPECTED_OUTPUTS_BY_STATE` in `lib/workflow-state-map.ts` define them per state. There is still no mechanical check that a prior agent's outputs actually landed before the next handoff is generated — `handoff generate` reads `status.md`'s `current_state` as the sole signal of readiness, same as `doctor`/`next`.
 - **Dependencies:** Multi-agent handoff chain
 
 ### Overall orchestration goal in every handoff
@@ -165,7 +166,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** Every rendered prompt should restate the overall feature/issue goal, not only the current phase's task, so an agent never loses sight of why the current step matters.
 - **Rationale:** Prevents agent drift and scope creep across a long handoff chain; matches the existing safety principle of keeping agents scoped and auditable.
 - **Candidate version:** v0.5
-- **Status:** NOT_STARTED — not implemented in v0.4; no prompt is rendered yet, so there is nothing to restate a goal inside.
+- **Status:** DONE — every generated handoff's `orchestration.overallGoal` (section C of the prompt) restates the fixed multi-agent SDD goal ("...ready for a human to review and merge...Do not merge automatically...") alongside `orchestration.currentStepGoal` (section D), the concrete goal for the current state, so an agent always sees both the destination and the current step.
 - **Dependencies:** Structured agent inputs/outputs
 
 ### Expected outputs per agent
@@ -175,7 +176,7 @@ These items define *what* an agent is (role, skills, prompt shape) and *where* i
 - **Description:** Formalize, per role and per phase, the exact document(s)/state transition expected as output, building on the existing `expected_outputs`/`EXPECTED_OUTPUTS_BY_STATE` concept already present in the runtime kit's coordinator scripts.
 - **Rationale:** This already exists informally in the runtime coordinator; v0.4 should promote it into the profile/config system so it is configurable per profile rather than hard-coded.
 - **Candidate version:** v0.5
-- **Status:** NOT_STARTED — not implemented in v0.4; the `EXPECTED_OUTPUTS_BY_STATE` map remains only in the runtime-kit coordinator scripts, not yet promoted into this config model.
+- **Status:** DONE — `EXPECTED_OUTPUTS_BY_STATE` was ported from the runtime kit's coordinator into `lib/workflow-state-map.ts` (orchestrator-side, not target-repo-side) and surfaced as `handoff.expectedOutputs` (prompt section G) for every generated handoff. Not yet profile-configurable (it is keyed by state, matching the source it was ported from, not by profile) — that refinement is unscheduled.
 - **Dependencies:** Structured agent inputs/outputs
 
 ### Configurable execution cycles
@@ -281,7 +282,7 @@ These items make the semi-assisted Cowork loop itself smoother (v0.5) and introd
 - **Description:** A single generated bundle (files + instructions) a user can hand off for one Cowork execution step, combining the rendered prompt, required reading list, and environment-specific execution instructions.
 - **Rationale:** Currently these are three separate artifacts (`next_prompt.md`, `context_files.txt`, ad hoc instructions); bundling them reduces friction for the human operator.
 - **Candidate version:** v0.5
-- **Status:** NOT_STARTED
+- **Status:** DONE — `handoff write` bundles `handoff.json` (full structured record), `prompt.md` (the rendered prompt, environment-specific execution instructions included), and `context_files.txt` (required reading list) into a single timestamped directory per project/feature under `.agentic-sdd/handoffs/`.
 - **Dependencies:** Claude Cowork execution instructions, Browser execution instructions
 
 ### Cowork prompt field
@@ -291,7 +292,7 @@ These items make the semi-assisted Cowork loop itself smoother (v0.5) and introd
 - **Description:** A first-class, addressable "current Cowork prompt" field in the orchestrator's state, distinct from the raw `next_prompt.md` file, so other features (copy button, execution history) can reference it directly.
 - **Rationale:** Needed as a stable handle for the local UI (P1) and execution history (P1) to point at, instead of re-reading a file path each time.
 - **Candidate version:** v0.5
-- **Status:** NOT_STARTED
+- **Status:** DONE — `Handoff.prompt` (`lib/handoff-types.ts`) is the first-class field; `handoff show`/`handoff list` address it via `latestHandoff()`/`listHandoffs()` in `lib/handoff-storage.ts` instead of the caller re-deriving a file path.
 - **Dependencies:** Cowork handoff package
 
 ### Execution history
@@ -300,8 +301,8 @@ These items make the semi-assisted Cowork loop itself smoother (v0.5) and introd
 - **Title:** Execution history
 - **Description:** A local, append-only record of each Cowork handoff that occurred (agent, phase, timestamp, outcome), building on the existing `docs/metrics/agent_calls.jsonl` convention already shipped in the runtime kit.
 - **Rationale:** Extends an existing, proven mechanism (`write_agent_call.ts` / `agent:log-call`) from per-target-repo logging into an orchestrator-level view across projects.
-- **Candidate version:** v0.5
-- **Status:** NOT_STARTED
+- **Candidate version:** v0.5 (generation history) / v0.6 (outcome tracking)
+- **Status:** PARTIAL — `handoff list` (backed by `listHandoffs()`) gives a local, timestamped record of every handoff *generated* for a project/feature, which is the "timestamp" half of this item. It does not yet record the *outcome* (done/blocked/what changed) of each handoff, since the orchestrator has no way to observe whether a written handoff was actually executed — that requires either manual entry or a future `doctor`-based post-check, deferred to v0.6.
 - **Dependencies:** Cowork prompt field
 
 ### Manual token/credit entry
