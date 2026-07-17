@@ -9,6 +9,12 @@ import {
 } from "./commands/config.js";
 import { runDoctorCommand } from "./commands/doctor.js";
 import { runEnvListCommand, runEnvShowCommand } from "./commands/env.js";
+import {
+  runHandoffGenerateCommand,
+  runHandoffListCommand,
+  runHandoffShowCommand,
+  runHandoffWriteCommand,
+} from "./commands/handoff.js";
 import { runInitFeatureCommand } from "./commands/init-feature.js";
 import { runInspectCommand } from "./commands/inspect.js";
 import { runInstallCommand } from "./commands/install.js";
@@ -32,7 +38,8 @@ type CommandName =
   | "profile"
   | "agent"
   | "env"
-  | "config";
+  | "config"
+  | "handoff";
 
 type CliIo = {
   log: (message: string) => void;
@@ -77,6 +84,10 @@ export function runCli(argv: string[], io: CliIo = defaultIo): number {
 
   if (command === "config") {
     return runConfigCommand(rest, io);
+  }
+
+  if (command === "handoff") {
+    return runHandoffCommand(rest, io);
   }
 
   if (command === "doctor" || command === "next") {
@@ -311,6 +322,71 @@ function runConfigCommand(rest: string[], io: CliIo): number {
   return 1;
 }
 
+function runHandoffCommand(rest: string[], io: CliIo): number {
+  const [subcommand, nameOrPath, ...flags] = rest;
+  const orchestratorRoot = resolveOrchestratorRoot();
+
+  if (!subcommand) {
+    io.error("Missing handoff subcommand.");
+    printUsage(io);
+    return 1;
+  }
+
+  if (subcommand === "generate" || subcommand === "write") {
+    if (!nameOrPath) {
+      io.error(`Missing project name or path for command: handoff ${subcommand}`);
+      printUsage(io);
+      return 1;
+    }
+    const agent = readOptionalFlagValue(flags, "--agent");
+    const feature = readOptionalFlagValue(flags, "--feature");
+    const environment = readOptionalFlagValue(flags, "--environment");
+
+    if (subcommand === "generate") {
+      const result = runHandoffGenerateCommand({ orchestratorRoot, nameOrPath, agent, feature, environment, io });
+      return result.ok ? 0 : 1;
+    }
+
+    runHandoffWriteCommand({ orchestratorRoot, nameOrPath, agent, feature, environment, io });
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    if (!nameOrPath) {
+      io.error("Missing project name or path for command: handoff show");
+      printUsage(io);
+      return 1;
+    }
+    const feature = readOptionalFlagValue(flags, "--feature");
+    runHandoffShowCommand({ orchestratorRoot, nameOrPath, feature, io });
+    return 0;
+  }
+
+  if (subcommand === "list") {
+    if (!nameOrPath) {
+      io.error("Missing project name or path for command: handoff list");
+      printUsage(io);
+      return 1;
+    }
+    runHandoffListCommand({ orchestratorRoot, nameOrPath, io });
+    return 0;
+  }
+
+  io.error(`Unknown handoff subcommand: ${subcommand}`);
+  printUsage(io);
+  return 1;
+}
+
+function readOptionalFlagValue(flags: string[], name: string): string | undefined {
+  const index = flags.indexOf(name);
+  if (index < 0) return undefined;
+  const value = flags[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for flag: ${name}`);
+  }
+  return value;
+}
+
 function readRequiredFlagValue(flags: string[], name: string): string {
   const index = flags.indexOf(name);
   const value = index >= 0 ? flags[index + 1] : undefined;
@@ -342,7 +418,8 @@ function isCommandName(command: string): command is CommandName {
     command === "profile" ||
     command === "agent" ||
     command === "env" ||
-    command === "config"
+    command === "config" ||
+    command === "handoff"
   );
 }
 
@@ -367,6 +444,12 @@ function printUsage(io: CliIo): void {
   io.log("  agentic-sdd config init [--force]");
   io.log("  agentic-sdd config show");
   io.log("  agentic-sdd config validate");
+  io.log(
+    "  agentic-sdd handoff generate <name-or-target-repo> [--agent <name>] [--feature <id>] [--environment <name>]"
+  );
+  io.log("  agentic-sdd handoff write <name-or-target-repo> [--agent <name>] [--feature <id>] [--environment <name>]");
+  io.log("  agentic-sdd handoff show <name-or-target-repo> [--feature <id>]");
+  io.log("  agentic-sdd handoff list <name-or-target-repo>");
 }
 
 if (isDirectExecution()) {

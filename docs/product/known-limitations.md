@@ -39,4 +39,13 @@ This repository currently ships a local Cowork-mode MVP. The current limitations
 - `config init` writes a full copy of the defaults; there is no partial/patch override format, so editing a large local `config.json` by hand is the only customization path today;
 - `automatic` execution mode is declared and validated but has no runtime effect; no provider is called or recommended programmatically yet;
 - `config validate`'s `promptTemplate` check only looks for a plausible `.md`-style name; it does not verify the referenced template file exists on disk;
-- no prompt is rendered from this configuration yet; that is v0.5 scope (Multi-Agent Cowork Handoff).
+- no prompt was rendered from this configuration in v0.4; that is delivered in v0.5 (Multi-Agent Cowork Handoff), described below.
+
+## Cowork handoff limitations (v0.5)
+
+- the state → agent mapping only covers the seven states the runtime kit coordinator actively models (`IDEA_CAPTURED`, `BRANCH_INITIALIZED`, `READY_FOR_TECHNICAL_SPEC`, `READY_FOR_IMPLEMENTATION`, `IMPLEMENTATION_READY_FOR_REVIEW`, `READY_FOR_FUNCTIONAL_VALIDATION`, `READY_FOR_PR`); a feature in a blocked or unrecognized state does not get an executable handoff;
+- if `status.md`'s `current_state` cannot be read, `handoff generate` reports `state_unknown` and refuses to guess rather than inventing a state;
+- no token or context-size estimation yet; `context.inputFiles` lists file paths only, not their sizes - that is v0.6 scope (Cycles, Budgets & Token Estimation);
+- `handoff write`'s output history (`.agentic-sdd/handoffs/`) is local to the orchestrator's machine and gitignored, same as the v0.3 project registry and v0.4 config override - it is not shared or synced;
+- there is no per-project or per-agent default environment; `--environment` defaults to `local_windows_powershell` when omitted;
+- the orchestrator does not track whether a written handoff was actually executed, or verify its outputs were produced - that is left to the human/agent's own final report and a subsequent `doctor`/`next` check.

@@ -4,7 +4,7 @@ Local CLI for installing and operating the Agentic SDD runtime kit.
 
 This CLI is currently intended for local demo and developer usage. It prepares a target repository for semi-assisted Cowork mode; it does not execute external AI models itself.
 
-v0.4 is a local development CLI release, not an npm-published standalone package yet.
+v0.5 is a local development CLI release, not an npm-published standalone package yet.
 
 ## Current commands
 
@@ -28,6 +28,10 @@ v0.4 is a local development CLI release, not an npm-published standalone package
 - `agentic-sdd config init [--force]`
 - `agentic-sdd config show`
 - `agentic-sdd config validate`
+- `agentic-sdd handoff generate <name-or-target-repo> [--agent <name>] [--feature <id>] [--environment <name>]`
+- `agentic-sdd handoff write <name-or-target-repo> [--agent <name>] [--feature <id>] [--environment <name>]`
+- `agentic-sdd handoff show <name-or-target-repo> [--feature <id>]`
+- `agentic-sdd handoff list <name-or-target-repo>`
 
 When running from this repository, use the packaged local script:
 
@@ -113,6 +117,15 @@ Preview which agents/environments would apply to a project:
 npm run agentic-sdd -- project config <name-or-target-repo>
 ```
 
+Generate, write, and show a Cowork handoff for a project's active feature:
+
+```bash
+npm run agentic-sdd -- handoff generate <name-or-target-repo>
+npm run agentic-sdd -- handoff write <name-or-target-repo>
+npm run agentic-sdd -- handoff show <name-or-target-repo>
+npm run agentic-sdd -- handoff list <name-or-target-repo>
+```
+
 ## End-to-end quickstart
 
 See [end-to-end-cowork-mvp.md](./docs/end-to-end-cowork-mvp.md) for the full local Cowork-mode flow.
@@ -172,11 +185,22 @@ v0.4 adds a local, versioned configuration model covering agents, prompt profile
 
 Each agent declares a role, default prompt profile, execution mode (`manual` or `automatic` - v0.4 only declares and validates `automatic`, it never calls a provider), a recommended provider, an optional external tool reference (a Gemini Gem / Custom GPT / Claude Project name - a label only, never called by the orchestrator), a skill list, responsibilities, and forbidden actions. Each environment declares OS, shell, command style, execution surface, available tools, execution rules, and forbidden actions, so prompt/command guidance can eventually adapt correctly between local PowerShell, local bash/zsh, Claude Cowork's browser surface, and plain manual copy/paste.
 
-None of this renders a Cowork prompt yet; `lib/prompt-context.ts`'s resolution helpers exist as the seam the v0.5 handoff generator will build on.
+`lib/prompt-context.ts`'s resolution helpers (resolveAgentContext/resolveEnvironmentContext/resolveHandoffInputs) are the seam v0.5's handoff generator builds on directly.
+
+## Cowork handoff (`handoff`)
+
+v0.5 turns the v0.4 configuration into a ready-to-use execution handoff:
+
+- `handoff generate <name-or-target-repo>` resolves the project, validates the runtime kit is installed, resolves the active feature (auto-selects when exactly one exists; requires `--feature <id>` and lists candidates when several exist; fails with the exact `init-feature` command when none exists), reads `current_state` from that feature's `status.md`, maps it to a recommended agent/target-state/expected-outputs (`lib/workflow-state-map.ts`, ported from the runtime kit's own proven coordinator state map), resolves that agent's profile/skills and the requested environment (default `local_windows_powershell`), and prints a metadata header followed by the full prompt. Override the recommended agent with `--agent <name>` or the environment with `--environment <name>`.
+- `handoff write` runs the same generation and writes `handoff.json`, `prompt.md`, and `context_files.txt` under `.agentic-sdd/handoffs/<project-slug>/<feature-id>/<timestamp>/` inside the orchestrator repo (gitignored). Never writes into the target repository.
+- `handoff show` reprints the most recently written handoff for a project (optionally scoped to `--feature <id>`); suggests `handoff write` if none exists yet.
+- `handoff list` lists every previously written handoff for a project, newest first.
+
+The composed prompt is organized into lettered sections: execution surface, available environment, overall orchestration goal, this execution goal, agent profile, inputs, expected outputs, allowed paths, forbidden actions, validation commands, and final report format. Every prompt's forbidden-actions section always includes: do not auto-merge, do not call external AI APIs, do not add secrets or credentials, do not delete user files, do not create a new branch unless explicitly instructed, do not scan the full repository unless blocked, do not create duplicate documentation files, do not modify unrelated workflow/runtime files unless required - plus the specific agent's own forbidden actions from its v0.4 config. `handoff generate`/`show`/`list` are strictly read-only against the target repository; `handoff write` only ever writes inside the orchestrator's own `.agentic-sdd/handoffs/`.
 
 ## Demo-ready workflow
 
-The intended v0.4 local/dev flow is:
+The intended v0.5 local/dev flow is:
 
 1. `config init` and `config validate` to set up and check the local configuration;
 2. `agent list`/`show`, `profile list`/`show`, `env list`/`show` to see what agents and environments are available;
@@ -185,11 +209,9 @@ The intended v0.4 local/dev flow is:
 5. run `install` on that sandbox;
 6. run `init-feature` with a real or demo issue number;
 7. re-run `doctor`/`next` to confirm progress;
-8. go into the target repository;
-9. run `npm install`;
-10. run `npm run agent:next`;
-11. open `.agent_runtime/next_prompt.md`;
-12. paste the prompt into Claude Cowork, Codex, Gemini, or a similar tool.
+8. run `handoff generate`/`handoff write` to produce a ready-to-paste Cowork handoff for the current feature state;
+9. copy the prompt from `handoff show` (or the generated `prompt.md`) into Claude Cowork, Codex, Gemini, or a manual copy-paste session;
+10. after the external agent finishes its turn and updates `status.md`, re-run `doctor`/`next`/`handoff generate` for the next step.
 
 Human final merge remains required.
 
