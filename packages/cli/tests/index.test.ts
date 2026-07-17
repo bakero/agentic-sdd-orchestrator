@@ -168,6 +168,35 @@ describe("CLI invocation", () => {
     expect(envResult.stderr).toContain("Unknown env subcommand: ship");
   });
 
+  it("routes unknown handoff subcommands to a clear error", () => {
+    const result = captureCli(["node", "agentic-sdd", "handoff", "ship"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unknown handoff subcommand: ship");
+  });
+
+  it("requires a name or path for handoff generate/write/show/list", () => {
+    const generateResult = captureCli(["node", "agentic-sdd", "handoff", "generate"]);
+    expect(generateResult.exitCode).toBe(1);
+    expect(generateResult.stderr).toContain("Missing project name or path for command: handoff generate");
+
+    const showResult = captureCli(["node", "agentic-sdd", "handoff", "show"]);
+    expect(showResult.exitCode).toBe(1);
+    expect(showResult.stderr).toContain("Missing project name or path for command: handoff show");
+  });
+
+  it("routes handoff generate by direct path end to end via the CLI, failing clearly with no runtime kit", () => {
+    const target = createTempDir("agentic-sdd-cli-handoff-");
+    writeFileSync(
+      path.join(target, "package.json"),
+      JSON.stringify({ name: "sandbox", private: true }, null, 2)
+    );
+    execFileSync("git", ["init"], { cwd: target, stdio: "ignore" });
+
+    const result = captureCli(["node", "agentic-sdd", "handoff", "generate", target]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("runtime kit is not installed");
+  });
+
   it("rejects invalid issue numbers before touching git state", () => {
     const target = createTempDir("agentic-sdd-cli-invalid-issue-");
     writeFileSync(
