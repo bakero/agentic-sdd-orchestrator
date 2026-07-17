@@ -1,4 +1,5 @@
 import path from "node:path";
+import { resolveEffectiveConfig } from "../lib/config.js";
 import { diagnoseTargetRepo, isRuntimeKitInstalled } from "../lib/diagnostics.js";
 import {
   addProject,
@@ -106,6 +107,47 @@ export function runProjectInspectCommand(options: ProjectInspectOptions): void {
       `Active feature folders: ${diagnostics.featureFolders.map((feature) => feature.featureId).join(", ")}`
     );
   }
+}
+
+export type ProjectConfigOptions = {
+  orchestratorRoot: string;
+  nameOrPath: string;
+  io: ProjectCliIo;
+};
+
+/**
+ * Shows which agents/profiles/environments the orchestrator's effective
+ * config would apply to a resolved project. v0.4 has no per-project
+ * override mechanism yet, so this reads the same orchestrator-level
+ * config as `config show`, scoped to the resolved project's identity for
+ * readability. It never writes to the project or the orchestrator config.
+ */
+export function runProjectConfigCommand(options: ProjectConfigOptions): void {
+  const resolved = resolveProjectNameOrPath(options.orchestratorRoot, options.nameOrPath);
+  const { config, source } = resolveEffectiveConfig(options.orchestratorRoot);
+
+  options.io.log("Agentic SDD project configuration");
+  options.io.log("");
+  options.io.log(`Project name: ${resolved.name ?? "(not registered - direct path)"}`);
+  options.io.log(`Path: ${resolved.targetPath}`);
+  options.io.log(`Config source: ${source === "local" ? "local override (.agentic-sdd/config.json)" : "built-in defaults"}`);
+  options.io.log("");
+
+  options.io.log("Agents and their default profile:");
+  for (const agent of config.agents) {
+    options.io.log(`  - ${agent.name} (${agent.role}) -> profile: ${agent.defaultProfile}, mode: ${agent.executionMode}`);
+  }
+
+  options.io.log("");
+  options.io.log("Available environments:");
+  for (const environment of config.environments) {
+    options.io.log(`  - ${environment.name} (${environment.shell}, ${environment.executionSurface})`);
+  }
+
+  options.io.log("");
+  options.io.log(
+    "This project does not have a project-specific override yet; it uses the orchestrator's effective config as shown above."
+  );
 }
 
 /**
